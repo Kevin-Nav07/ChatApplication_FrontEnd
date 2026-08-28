@@ -1,0 +1,85 @@
+/* ==========================================================================
+   Auth Page Layout (Split Screen Minimalist)
+   ========================================================================== */
+
+.authLayout {
+    display: flex;
+    min-height: 100vh;
+    width: 100vw;
+    background-color: var(--color-background, #1a190b);
+}
+
+/* Left Pane: Solid, stark, slight radial for depth but no neon */
+.visualPane {
+    flex: 1.2;
+    display: none;
+    /* Hidden on mobile, flex on desktop */
+    background: radial-gradient(circle at 30% 70%, #20130c 0%, #110e0a 60%, #0a0906 100%);
+    border-right: 1px solid rgba(255, 255, 255, 0.03);
+    position: relative;
+    padding: 4rem;
+    overflow: hidden;
+}
+
+.visualContent {
+    position: absolute;
+    bottom: 5rem;
+    left: 5rem;
+    z-index: 10;
+}
+
+.watermark {
+    position: absolute;
+    bottom: -8rem;
+    left: -4rem;
+    font-size: 45rem;
+    font-weight: 800;
+    line-height: 0.7;
+    color: rgba(255, 255, 255, 0.015);
+    z-index: 0;
+    pointer-events: none;
+    user-select: none;
+    letter-spacing: -0.05em;
+}
+
+.brandTitle {
+    font-size: 3rem;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--color-text-pure);
+    margin: 0 0 1rem 0;
+    position: relative;
+}
+
+.brandTagline {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0;
+    position: relative;
+}
+
+/* Right Pane: Center the form components cleanly */
+.formPane {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    background-color: var(--color-background-deep);
+}
+
+.formContainer {
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 10;
+}
+
+/* Responsive */
+@media (min-width: 900px) {
+    .visualPane {
+        display: flex;
+    }
+}
