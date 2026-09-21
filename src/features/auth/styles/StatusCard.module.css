@@ -1,0 +1,123 @@
+/* Modal backdrop with subtle blur */
+.modalBackdrop {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1.5rem;
+    box-sizing: border-box;
+    animation: fadeIn 0.2s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Centered modal card pop-in animation */
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modalCard {
+    width: 100%;
+    max-width: 330px;
+    background-color: #14130f;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.bodyContent {
+    padding: 2rem 1.5rem 1.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Large circular outline icon matching the reference image */
+.iconCircle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 1.25rem;
+}
+
+.successIcon {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.errorIcon {
+    border-color: #f87171;
+    color: #f87171;
+}
+
+.iconSvg {
+    width: 32px;
+    height: 32px;
+}
+
+.title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin: 0 0 0.5rem 0;
+    letter-spacing: -0.02em;
+}
+
+.message {
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* Bottom full-width action button matching the reference */
+.confirmButton {
+    width: 100%;
+    padding: 1.1rem;
+    border: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: transparent;
+    color: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.confirmButton:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    color: var(--color-primary, #e5753d);
+}
+
+.confirmButton:active {
+    background-color: rgba(255, 255, 255, 0.08);
+}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import styles from "./styles/HomePage.module.css";
 import fireEmblem from "../assets/fireEmblem.png";
+import NavBar from "../components/NavBar";
 
 // Living Canvas-based Campfire Ember simulation
 const CampfireCanvas = () => {
@@ -125,49 +126,52 @@ const CampfireCanvas = () => {
 
 export default function HomePage(): React.JSX.Element {
     return (
-        <div className={styles.heroViewport}>
-            {/* Ambient Campfire Simulation */}
-            <CampfireCanvas />
-            <div className={styles.forestVignette} />
+        <>
+            <NavBar />
+            <div className={styles.heroViewport}>
+                {/* Ambient Campfire Simulation */}
+                <CampfireCanvas />
+                <div className={styles.forestVignette} />
 
 
 
-            {/* Main Center Composition */}
-            <main className={styles.heroShowcase}>
-                <div className={styles.heroTextBlock}>
-                    <h1 className={styles.mainTitle}>ember</h1>
+                {/* Main Center Composition */}
+                <main className={styles.heroShowcase}>
+                    <div className={styles.heroTextBlock}>
+                        <h1 className={styles.mainTitle}>ember</h1>
 
-                    <p className={styles.heroSubheading}>
-                        A warm space for real-time conversations. Connect with friends and communities around the hearth.
-                    </p>
+                        <p className={styles.heroSubheading}>
+                            A warm space for real-time conversations. Connect with friends and communities around the hearth.
+                        </p>
 
-                    <div className={styles.heroActionRow}>
-                        <button className={styles.mainCtaButton}>
-                            <span>Start chatting</span>
-                            <span className={styles.ctaArrow}>&rarr;</span>
-                        </button>
+                        <div className={styles.heroActionRow}>
+                            <button className={styles.mainCtaButton}>
+                                <span>Start chatting</span>
+                                <span className={styles.ctaArrow}>&rarr;</span>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                {/* Right Side: Clean Flame Emblem without artificial halos */}
-                <div className={styles.heroVisualBlock}>
-                    <div className={styles.emblemWrapper}>
-                        <img
-                            src={fireEmblem}
-                            alt="Ember Emblem"
-                            className={styles.fireEmblemImg}
-                            onError={(e) => {
-                                (e.target as HTMLElement).style.display = "none";
-                            }}
-                        />
+                    {/* Right Side: Clean Flame Emblem without artificial halos */}
+                    <div className={styles.heroVisualBlock}>
+                        <div className={styles.emblemWrapper}>
+                            <img
+                                src={fireEmblem}
+                                alt="Ember Emblem"
+                                className={styles.fireEmblemImg}
+                                onError={(e) => {
+                                    (e.target as HTMLElement).style.display = "none";
+                                }}
+                            />
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
 
-            {/* Minimalist Bottom Bar */}
-            <footer className={styles.bottomBar}>
-                <span className={styles.bottomMeta}>around the hearth • real-time messaging</span>
-            </footer>
-        </div>
+                {/* Minimalist Bottom Bar */}
+                <footer className={styles.bottomBar}>
+                    <span className={styles.bottomMeta}>around the hearth • real-time messaging</span>
+                </footer>
+            </div>
+        </>
     );
 }

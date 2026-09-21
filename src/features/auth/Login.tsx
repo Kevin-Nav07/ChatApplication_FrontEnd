@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from './styles/Login.module.css';
+import { Link } from 'react-router-dom';
 
 export default function Login(): React.JSX.Element {
     return (
@@ -39,7 +40,9 @@ export default function Login(): React.JSX.Element {
 
             <div className={styles.footerLink}>
                 <span>Don't have an account? </span>
-                <a href="#" className={styles.link}>Sign up</a>
+                <Link to="/auth/signup">
+                    <a href="#" className={styles.link}>Sign up</a>
+                </Link>
             </div>
         </div>
     );

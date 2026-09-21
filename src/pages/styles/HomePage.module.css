@@ -14,7 +14,7 @@
     background: radial-gradient(circle at 50% 90%, #2e150a 0%, #160d07 45%, #0d0c07 100%);
     overflow: hidden;
     box-sizing: border-box;
-    font-family: var(--font-display);
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     color: var(--color-text-main, #f5f5f5);
 }
 

@@ -1,0 +1,25 @@
+/* Keyframe animation for continuous smooth rotation */
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spinnerSvg {
+    display: inline-block;
+    vertical-align: middle;
+    animation: spin 0.75s linear infinite;
+    flex-shrink: 0;
+}
+
+.spinnerTrack {
+    opacity: 0.25;
+}
+
+.spinnerHead {
+    opacity: 1;
+}
