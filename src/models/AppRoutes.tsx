@@ -4,6 +4,7 @@ import HomePage from "../pages/HomePage";
 import AuthPage from "../pages/AuthPage";
 import Login from "../features/auth/Login";
 import Signup from "../features/auth/Signup";
+import DashboardPage from "../pages/DashboardPage";
 
 //creates a dataRouter which is a routing list or map
 const routeList: DataRouter = createBrowserRouter([
@@ -28,6 +29,10 @@ const routeList: DataRouter = createBrowserRouter([
                     }
                 ]
 
+            },
+            {
+                path: "dashboard", // Main authenticated dashboard destination
+                Component: DashboardPage
             }
 
         ]

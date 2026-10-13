@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from '../styles/Spinner.module.css';
+import styles from './styles/Spinner.module.css'
 
 export interface SpinnerProps {
     size?: number;

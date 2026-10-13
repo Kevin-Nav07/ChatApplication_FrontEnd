@@ -32,6 +32,20 @@
     gap: 1.5rem;
 }
 
+.fieldset {
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.fieldset:disabled .inputField {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .inputGroup {
     display: flex;
     flex-direction: column;
@@ -67,6 +81,15 @@
     background: rgba(255, 255, 255, 0.04);
 }
 
+.inputFieldError {
+    border-color: #ef4444 !important;
+    background: rgba(239, 68, 68, 0.03);
+}
+
+.inputFieldError:focus {
+    border-color: #f87171 !important;
+}
+
 .submitButton {
     margin-top: 1rem;
     background-color: var(--color-primary, #e5753d);
@@ -78,15 +101,29 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.submitButton:hover {
+.submitButton:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.buttonLoadingContent {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.submitButton:not(:disabled):hover {
     background-color: #ffffff;
     color: #0f0e0b;
     border-color: #ffffff;
 }
 
-.submitButton:active {
+.submitButton:not(:disabled):active {
     transform: scale(0.99);
 }
 

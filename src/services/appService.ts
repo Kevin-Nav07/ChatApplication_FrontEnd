@@ -12,9 +12,9 @@ const axiosOptions: CreateAxiosDefaults = {
     headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",
-        "Cache-Control": "no-cache",
+        // "Cache-Control": "no-cache",
     },
-    timeout: 8000, //8 second timeout,
+    timeout: 10000, //8 second timeout,
     withCredentials: true
 
 };
