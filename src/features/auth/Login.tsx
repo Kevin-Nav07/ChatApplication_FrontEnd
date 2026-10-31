@@ -7,12 +7,20 @@ import FieldError from '../../components/FieldError';
 import Spinner from '../../components/Spinner';
 import StatusCard, { type StatusFeedback } from '../../components/StatusCard';
 import { login } from '../../services/authService';
-import useAPI from '../../hooks/useAPI';
+import { AppError, getErrorMessage } from '../../models/AppError';
+
+// Picks the text to show when login fails
+// No status code means the request never got a response (server down, certificate not trusted, CORS blocked),
+// which is a different problem from wrong credentials, so it gets its own message
+function describeLoginError(error: unknown): string {
+    if (error instanceof AppError && error.statusCode === undefined) {
+        return 'Could not reach the server. Make sure the backend is running and its certificate is trusted in this browser.';
+    }
+    return getErrorMessage(error); // the server's own message, for example "Invalid username or password"
+}
 
 // Component that renders the login page and handles user sign-in
 export default function Login(): React.JSX.Element {
-    // Custom hook managing the network call, loading state, and error handling for login
-    const { execute: executeLogin, isLoading } = useAPI(login);
 
     // State to store feedback card data after submission (null when no notification is active)
     const [status, setStatus] = useState<StatusFeedback | null>(null);
@@ -32,10 +40,11 @@ export default function Login(): React.JSX.Element {
         // Clear any previous notification before starting a new login request
         setStatus(null);
 
-        // Execute login request through useAPI custom hook
-        const result = await executeLogin(formData);
-
-        if (result) {
+        // login is called directly instead of through useAPI because useAPI swallows the error and returns null,
+        // and we need the error itself to tell a wrong password apart from an unreachable server.
+        // react-hook-form keeps isSubmitting true until this async function finishes, so it already acts as the loading state
+        try {
+            await login(formData); // the server stores the tokens in HttpOnly cookies, so there is nothing to save here
             // Set positive feedback state when the credentials are valid
             setStatus({
                 type: 'success',
@@ -43,13 +52,13 @@ export default function Login(): React.JSX.Element {
                 message: `Logged in successfully as ${formData.username}.`,
             });
             navigate("/dashboard")
-            // Token storage and navigation will be implemented here
-        } else {
+        }
+        catch (error: unknown) {
             // Set error feedback state when the credentials are invalid or request fails
             setStatus({
                 type: 'error',
                 title: 'Sign in failed',
-                message: 'Invalid username or password. Please try again.',
+                message: describeLoginError(error),
             });
         }
     };
@@ -75,9 +84,9 @@ export default function Login(): React.JSX.Element {
             <Form className={styles.formElement} onSubmit={handleSubmit(onSubmit)} action="/dashboard">
                 {/* 
                   The native fieldset element automatically disables all nested inputs
-                  when isSubmitting or isLoading is true, preventing user edits during network requests
+                  when isSubmitting is true, preventing user edits during network requests
                 */}
-                <fieldset disabled={isSubmitting || isLoading} className={styles.fieldset}>
+                <fieldset disabled={isSubmitting} className={styles.fieldset}>
                     {/* Username Input Group */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="username" className={styles.label}>
@@ -121,9 +130,9 @@ export default function Login(): React.JSX.Element {
                 <button
                     type="submit"
                     className={styles.submitButton}
-                    disabled={isSubmitting || isLoading}
+                    disabled={isSubmitting}
                 >
-                    {isSubmitting || isLoading ? (
+                    {isSubmitting ? (
                         <span className={styles.buttonLoadingContent}>
                             <Spinner size={16} />
                             <span>Signing in...</span>

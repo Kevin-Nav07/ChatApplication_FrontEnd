@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styles from './styles/DashboardPage.module.css';
+import FriendsView from '../features/friends/components/FriendsView';
 
 // Type defining the active primary navigation mode in the left rail
 type NavTab = 'messages' | 'friends' | 'settings';
@@ -81,7 +82,7 @@ export default function DashboardPage(): React.JSX.Element {
                     </div>
                 </div>
 
-                {/* Rail Bottom Section: Profile Avatar with online indicator */}
+                {/* Rail Bottom Section: Profile Avatar */}
                 <div className={styles.railBottomSection}>
                     <div className={styles.avatarContainer}>
                         <button
@@ -92,164 +93,156 @@ export default function DashboardPage(): React.JSX.Element {
                         >
                             <span>U</span>
                         </button>
-                        {/* Green indicator indicating user is online */}
-                        <span className={styles.onlineIndicator} />
                     </div>
                 </div>
             </nav>
 
             {/* ----------------------------------------------------------------
-                2. List Pane (Middle Column, 320px Native Conversation List)
-                Houses iMessage-style conversation list, search capsule, and filters
+                Feature Render Switching based on activeTab
+                - 'messages': Renders conversation list and chat stage
+                - 'friends': Renders the FriendsView component (Method 3: Split-View Partitioned)
+                - 'settings': Renders settings placeholder
                ---------------------------------------------------------------- */}
-            <aside className={styles.listPane} aria-label="Conversation and Category List">
-                <header className={styles.listHeader}>
-                    <h2 className={styles.listTitle}>
-                        {activeTab === 'messages' && 'Messages'}
-                        {activeTab === 'friends' && 'Friends'}
-                        {activeTab === 'settings' && 'Settings'}
-                    </h2>
-                    {activeTab !== 'settings' && (
-                        <button
-                            type="button"
-                            className={styles.composeBtn}
-                            title={activeTab === 'messages' ? 'New Message' : 'Add Friend'}
-                            aria-label={activeTab === 'messages' ? 'Compose new message' : 'Add new friend'}
-                        >
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <line x1="12" y1="5" x2="12" y2="19" />
-                                <line x1="5" y1="12" x2="19" y2="12" />
-                            </svg>
-                        </button>
-                    )}
-                </header>
+            {activeTab === 'messages' && (
+                <>
+                    {/* 2. List Pane (Middle Column, 320px Native Conversation List) */}
+                    <aside className={styles.listPane} aria-label="Conversation List">
+                        <header className={styles.listHeader}>
+                            <h2 className={styles.listTitle}>Messages</h2>
+                            <button
+                                type="button"
+                                className={styles.composeBtn}
+                                title="New Message"
+                                aria-label="Compose new message"
+                            >
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="5" x2="12" y2="19" />
+                                    <line x1="5" y1="12" x2="19" y2="12" />
+                                </svg>
+                            </button>
+                        </header>
 
-                {/* Apple capsule search bar */}
-                {activeTab !== 'settings' && (
-                    <div className={styles.searchContainer}>
-                        <div className={styles.searchInputWrapper}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="11" cy="11" r="8" />
-                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                            </svg>
-                            <input
-                                type="text"
-                                className={styles.searchInput}
-                                placeholder={activeTab === 'messages' ? 'Search conversations' : 'Search friends'}
-                            />
+                        {/* Apple capsule search bar */}
+                        <div className={styles.searchContainer}>
+                            <div className={styles.searchInputWrapper}>
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="11" cy="11" r="8" />
+                                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                                </svg>
+                                <input
+                                    type="text"
+                                    className={styles.searchInput}
+                                    placeholder="Search conversations"
+                                />
+                            </div>
                         </div>
-                    </div>
-                )}
 
-                {/* Filter pills: All and Unread */}
-                {activeTab === 'messages' && (
-                    <div className={styles.filterPillsRow}>
-                        <button
-                            type="button"
-                            className={`${styles.filterPill} ${filter === 'all' ? styles.filterPillActive : ''}`}
-                            onClick={() => setFilter('all')}
-                        >
-                            All
-                        </button>
-                        <button
-                            type="button"
-                            className={`${styles.filterPill} ${filter === 'unread' ? styles.filterPillActive : ''}`}
-                            onClick={() => setFilter('unread')}
-                        >
-                            Unread
-                        </button>
-                    </div>
-                )}
+                        {/* Filter pills: All and Unread */}
+                        <div className={styles.filterPillsRow}>
+                            <button
+                                type="button"
+                                className={`${styles.filterPill} ${filter === 'all' ? styles.filterPillActive : ''}`}
+                                onClick={() => setFilter('all')}
+                            >
+                                All
+                            </button>
+                            <button
+                                type="button"
+                                className={`${styles.filterPill} ${filter === 'unread' ? styles.filterPillActive : ''}`}
+                                onClick={() => setFilter('unread')}
+                            >
+                                Unread
+                            </button>
+                        </div>
 
-                {/* Living conversation thread item */}
-                <div className={styles.listBody}>
-                    {activeTab === 'messages' && (
-                        <div className={`${styles.chatItem} ${styles.chatItemActive}`}>
-                            {/* Flame avatar for Ember Hearth welcome channel */}
-                            <div className={styles.chatAvatar}>
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                        {/* Living conversation thread item */}
+                        <div className={styles.listBody}>
+                            <div className={`${styles.chatItem} ${styles.chatItemActive}`}>
+                                {/* Flame avatar for Ember Hearth welcome channel */}
+                                <div className={styles.chatAvatar}>
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                                    </svg>
+                                </div>
+
+                                {/* Contact title and message preview */}
+                                <div className={styles.chatDetails}>
+                                    <div className={styles.chatTopRow}>
+                                        <span className={styles.chatName}>Ember Hearth</span>
+                                        <span className={styles.chatTime}>Just now</span>
+                                    </div>
+                                    <div className={styles.chatBottomRow}>
+                                        <p className={styles.chatSnippet}>Welcome to Ember! Start typing below...</p>
+                                        <span className={styles.unreadBadge} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    {/* 3. Detail / Chat Stage (Integrated window, NO floating cards) */}
+                    <main className={styles.stagePane} aria-label="Main Canvas">
+                        {/* Integrated top header bar */}
+                        <header className={styles.stageHeader}>
+                            <span className={styles.stageHeaderTitle}>Ember Hearth</span>
+                            <span className={styles.stageHeaderMeta}>General</span>
+                        </header>
+
+                        {/* Center empty state content */}
+                        <div className={styles.stageEmptyContent}>
+                            <div className={styles.emptyBadge}>
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                                     <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
                                 </svg>
                             </div>
 
-                            {/* Contact title and message preview */}
-                            <div className={styles.chatDetails}>
-                                <div className={styles.chatTopRow}>
-                                    <span className={styles.chatName}>Ember Hearth</span>
-                                    <span className={styles.chatTime}>Just now</span>
-                                </div>
-                                <div className={styles.chatBottomRow}>
-                                    <p className={styles.chatSnippet}>Welcome to Ember! Start typing below...</p>
-                                    <span className={styles.unreadBadge} />
-                                </div>
+                            <h1 className={styles.emptyHeading}>The hearth is warm</h1>
+
+                            <p className={styles.emptySubtitle}>
+                                You are connected to Ember. Select a conversation or start a new thread to begin chatting.
+                            </p>
+
+                            <button type="button" className={styles.primaryPillBtn}>
+                                Start New Thread
+                            </button>
+                        </div>
+
+                        {/* Bottom Apple message input dock */}
+                        <div className={styles.chatInputDock}>
+                            <div className={styles.dockInputWrapper}>
+                                <input
+                                    type="text"
+                                    className={styles.dockInput}
+                                    placeholder="Message Ember Hearth..."
+                                    value={draftMessage}
+                                    onChange={(e) => setDraftMessage(e.target.value)}
+                                />
                             </div>
+                            <button type="button" className={styles.dockSendBtn} aria-label="Send message">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <line x1="12" y1="19" x2="12" y2="5" />
+                                    <polyline points="5 12 12 5 19 12" />
+                                </svg>
+                            </button>
                         </div>
-                    )}
+                    </main>
+                </>
+            )}
 
-                    {activeTab === 'friends' && (
-                        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#8e8e93', fontSize: '0.85rem' }}>
-                            <p style={{ margin: 0, fontWeight: 600, color: '#1d1d1f' }}>No friend requests</p>
-                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.78rem' }}>Incoming friend requests will show here.</p>
-                        </div>
-                    )}
+            {/* Friends Feature: Method 3 Split-View Partitioned */}
+            {activeTab === 'friends' && (
+                <FriendsView onDirectMessage={() => setActiveTab('messages')} />
+            )}
 
-                    {activeTab === 'settings' && (
-                        <div style={{ padding: '1.5rem', textAlign: 'center', color: '#8e8e93', fontSize: '0.85rem' }}>
-                            <p style={{ margin: 0, fontWeight: 600, color: '#1d1d1f' }}>Settings</p>
-                            <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.78rem' }}>Profile, notifications, and security preferences.</p>
-                        </div>
-                    )}
-                </div>
-            </aside>
-
-            {/* ----------------------------------------------------------------
-                3. Detail / Chat Stage (Integrated window, NO floating cards)
-               ---------------------------------------------------------------- */}
-            <main className={styles.stagePane} aria-label="Main Canvas">
-                {/* Integrated top header bar */}
-                <header className={styles.stageHeader}>
-                    <span className={styles.stageHeaderTitle}>Ember Hearth</span>
-                    <span className={styles.stageHeaderMeta}>Online</span>
-                </header>
-
-                {/* Center empty state content */}
-                <div className={styles.stageEmptyContent}>
-                    <div className={styles.emptyBadge}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-                        </svg>
+            {/* Settings Tab Placeholder */}
+            {activeTab === 'settings' && (
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8e8e93', fontSize: '0.9rem' }}>
+                    <div style={{ textAlign: 'center' }}>
+                        <p style={{ margin: 0, fontWeight: 600, color: '#1d1d1f' }}>Settings</p>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem' }}>Profile, notifications, and security preferences.</p>
                     </div>
-
-                    <h1 className={styles.emptyHeading}>The hearth is warm</h1>
-
-                    <p className={styles.emptySubtitle}>
-                        You are connected to Ember. Select a conversation or start a new thread to begin chatting.
-                    </p>
-
-                    <button type="button" className={styles.primaryPillBtn}>
-                        Start New Thread
-                    </button>
                 </div>
-
-                {/* Bottom Apple message input dock */}
-                <div className={styles.chatInputDock}>
-                    <div className={styles.dockInputWrapper}>
-                        <input
-                            type="text"
-                            className={styles.dockInput}
-                            placeholder="Message Ember Hearth..."
-                            value={draftMessage}
-                            onChange={(e) => setDraftMessage(e.target.value)}
-                        />
-                    </div>
-                    <button type="button" className={styles.dockSendBtn} aria-label="Send message">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="12" y1="19" x2="12" y2="5" />
-                            <polyline points="5 12 12 5 19 12" />
-                        </svg>
-                    </button>
-                </div>
-            </main>
+            )}
         </div>
     );
 }

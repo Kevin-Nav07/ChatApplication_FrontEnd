@@ -11,3 +11,9 @@ export class AppError extends Error {
         this.fieldErrors = fieldErrors;
     }
 }
+
+// Turns anything caught in a catch block into text that is safe to show the user
+// An AppError already carries the server's message, anything else is a bug so a generic message is shown instead
+export function getErrorMessage(error: unknown): string {
+    return error instanceof AppError ? error.message : 'Something went wrong. Please try again.';
+}
