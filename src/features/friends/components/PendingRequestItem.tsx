@@ -23,30 +23,29 @@ export default function PendingRequestItem({
     const initial = request.username.charAt(0).toUpperCase();
 
     return (
-        <div className={styles.requestItemRow}>
-            <div className={styles.requestItemLeft}>
-                {/* Target user avatar indicator */}
-                <div className={styles.requestAvatar}>
-                    {initial}
-                </div>
+        <div
+            className={styles.row}
+            data-burn-key={`o${request.friendshipId}`}
+            data-row-name={request.username} // lets the add friend form find this row and glow it right after sending
+        >
+            {/* A cold coal: they have not answered yet */}
+            <span className={`${styles.coal} ${styles.coalCold}`} aria-hidden="true">
+                {initial}
+            </span>
 
-                {/* Recipient handle and relative date notice */}
-                <div className={styles.requestMeta}>
-                    <span className={styles.requestUsername}>
-                        {request.username}
-                    </span>
-                    <span className={styles.requestCaption}>
-                        Request sent {formatRelativeTime(request.createdAt)}
-                    </span>
-                </div>
+            {/* Recipient handle and relative date notice */}
+            <div className={styles.rowMeta}>
+                <span className={styles.rowName}>{request.username}</span>
+                <span className={styles.rowSub}>sent {formatRelativeTime(request.createdAt)}</span>
             </div>
 
-            {/* Action button to cancel outgoing pending request */}
-            <div className={styles.requestActionGroup}>
+            {/* Text action to take back the request */}
+            <div className={styles.rowActions}>
                 <button
                     type="button"
-                    className={styles.cancelBtn}
+                    className={styles.textActionBtn}
                     disabled={disabled}
+                    aria-label={`Cancel request to ${request.username}`}
                     onClick={() => onCancel && onCancel(request.friendshipId)}
                 >
                     Cancel
@@ -55,4 +54,3 @@ export default function PendingRequestItem({
         </div>
     );
 }
-

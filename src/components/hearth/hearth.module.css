@@ -1,0 +1,78 @@
+/* ==========================================================================
+   Hearth materials, shared by every dashboard screen
+   Other CSS modules pull these in with `composes: panel from '...'`, which
+   adds this file's class to the element alongside their own.
+   ========================================================================== */
+
+/* The filters live in an SVG with no size; position absolute keeps it out of the layout */
+.filters {
+    position: absolute;
+}
+
+/* Behind the interface: the room itself. Its background is the room's darkest charcoal, so it doubles as the page ground */
+.sky {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    background-color: #0b0907;
+}
+
+/* In front of the interface: sparks and ash. pointer-events: none lets every click fall through to the buttons below */
+.fx {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 30;
+    pointer-events: none;
+}
+
+/* Fine ash grain over everything, like paper that has sat near a fire. The noise is an SVG drawn inside a data URL */
+.grain {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    pointer-events: none;
+    opacity: 0.09;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='g'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .9  0 0 0 0 .85  0 0 0 0 .8  0 0 0 1 0'/></filter><rect width='100%' height='100%' filter='url(%23g)'/></svg>");
+}
+
+/* A charcoal outline: a plain border on a pseudo element, roughened by the SVG filter so it looks drawn by hand.
+   Putting it on ::before keeps the element's own text crisp, because only the outline goes through the filter */
+.rough {
+    position: relative;
+}
+
+.rough::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 1.3px solid rgba(214, 198, 180, 0.2);
+    border-radius: inherit;
+    filter: url(#hearth-rough);
+    pointer-events: none;
+}
+
+/* A second, fainter stroke slightly offset, so edges look sketched twice */
+.sketch::after {
+    content: "";
+    position: absolute;
+    inset: 2px -1px -1px 2px;
+    border: 1px solid rgba(214, 198, 180, 0.08);
+    border-radius: inherit;
+    filter: url(#hearth-rough-2);
+    pointer-events: none;
+}
+
+/* A charcoal panel. It is slightly see-through so embers pass faintly behind it,
+   and firelight catches its bottom edge, never its top, because the fire is below */
+.panel {
+    composes: rough sketch;
+    background-color: rgba(22, 18, 15, 0.86);
+    border-radius: 18px;
+    box-shadow: inset 0 -1px 0 rgba(255, 140, 60, calc(0.16 * var(--flick, 1)));
+}

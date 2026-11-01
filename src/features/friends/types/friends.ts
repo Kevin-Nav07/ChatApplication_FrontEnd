@@ -38,6 +38,3 @@ export interface FriendshipApiRow {
     other_username: string;
     direction: 'incoming' | 'outgoing';
 }
-
-// Active sub-tab in the requests drawer (incoming vs sent pending)
-export type RequestDrawerTab = 'incoming' | 'outgoing';

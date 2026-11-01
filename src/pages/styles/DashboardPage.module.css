@@ -1,306 +1,333 @@
 /* ==========================================================================
-   Dashboard Component Styles (macOS Messages Native Split View)
-   Built on Apple Human Interface Guidelines: clean neutral materials,
-   hairline structural borders, San Francisco typographic hierarchy,
-   and zero artificial glowing overlays.
+   Dashboard: one dark room lit by a fire
+   The room's ground, glow, fire and embers are drawn by HearthProvider on a
+   canvas behind this page, so the page itself stays transparent. Surfaces are
+   charcoal, outlines are rough charcoal strokes, headings are a warm serif,
+   and firelight catches the bottom edge of things because the fire is below.
    ========================================================================== */
 
-/* Full viewport layout container with crisp Apple light neutral foundation */
+/* Full viewport layout. The design tokens live here so every screen inside the dashboard can use them */
 .dashboardContainer {
+    /* Charcoal, from the room up */
+    --char-0: #0b0907;
+    --char-1: rgba(22, 18, 15, 0.86);
+    --char-2: #211c17;
+    --char-3: #2b251f;
+
+    /* Text in three tiers, each passes 4.5:1 contrast on charcoal */
+    --text: #eeeae5;
+    --muted: #b5ab9f;
+    --faint: #958b80;
+
+    /* Colour */
+    --accent: var(--color-primary, #e5753d); /* the brand ember */
+    --ember-hot: #ffb072; /* for words that need attention */
+    --negative: #ec7262;
+    --negative-bg: rgba(236, 114, 98, 0.14);
+
+    /* Type: the warm serif for headings, the brand face for everything else */
+    --serif: 'Fraunces', Georgia, serif;
+    --font: var(--font-body);
+
+    /* Shape and motion */
+    --radius-card: 18px;
+    --radius-row: 14px;
+    --radius-pill: 999px;
+    --ease: cubic-bezier(0.22, 0.9, 0.24, 1); /* starts fast and settles gently, like a damped spring */
+
+    position: relative;
+    z-index: 1; /* sits above the hearth's background canvas and below its spark canvas */
     width: 100vw;
     height: 100vh;
     display: flex;
     overflow: hidden;
-    background-color: #ffffff;
-    color: #1d1d1f; /* Apple primary text */
-    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Inter', sans-serif;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 14px;
+    color-scheme: dark; /* dark scrollbars and form controls */
     -webkit-font-smoothing: antialiased;
+    /* The room fades up as the embers rush in. "backwards" holds the first frame during the delay but lets go at the end,
+       because a transform left on this element would change what position: fixed means for everything inside it */
+    animation: enterRoom 0.9s var(--ease) 0.1s backwards;
+}
+
+@keyframes enterRoom {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* One focus ring for keyboard users. Inputs are skipped because their pill wrappers show the ring instead */
+.dashboardContainer :focus-visible:not(input) {
+    outline: 2px solid var(--muted);
+    outline-offset: 2px;
 }
 
 /* --------------------------------------------------------------------------
-   1. Nav Rail (Primary Column, Left-most slim 64px icon bar)
+   1. Nav Rail
    -------------------------------------------------------------------------- */
 .navRail {
-    width: 64px;
+    width: 72px;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1.25rem 0;
-    background-color: #f2f2f7; /* Apple system gray 6 */
-    border-right: 1px solid #e5e5ea; /* Apple hairline divider */
-    z-index: 10;
     flex-shrink: 0;
-}
-
-.railTopSection {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 1.5rem;
-    width: 100%;
+    padding: 20px 0 16px;
+    background-color: rgba(11, 9, 7, 0.72);
+    position: relative;
 }
 
-/* Brand flame mark */
+/* The rail's right edge is a charcoal line, not a ruled border */
+.navRail::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    border-right: 1.3px solid rgba(214, 198, 180, 0.2);
+    filter: url(#hearth-rough);
+    pointer-events: none;
+}
+
+/* The product's mark, glowing with the fire's flicker */
 .brandIcon {
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    background: #ffffff;
-    border: 1px solid #e5e5ea;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #e5753d; /* Warm ember accent */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    color: var(--accent);
+    filter: drop-shadow(0 0 calc(7px * var(--flick, 1)) rgba(229, 117, 61, 0.55));
 }
 
 .navGroup {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-    align-items: center;
+    gap: 6px;
+    margin-top: 26px;
 }
 
-/* Slim Apple icon button with immediate physical response on pointer-down */
+/* An icon with its name under it. The open tab is marked by brightness alone */
 .navButton {
-    position: relative;
-    width: 42px;
-    height: 42px;
-    border-radius: 10px;
+    width: 62px;
+    padding: 9px 0 7px;
     border: none;
+    border-radius: var(--radius-row);
     background: transparent;
-    color: #8e8e93; /* Apple system gray */
+    color: var(--faint);
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    gap: 4px;
+    font-family: inherit;
     cursor: pointer;
-    transition: background 120ms ease, color 120ms ease, transform 120ms cubic-bezier(0.2, 0, 0, 1);
+    transition: color 0.15s, transform 0.1s ease-out;
 }
 
 .navButton:hover {
-    color: #1d1d1f;
-    background-color: rgba(0, 0, 0, 0.05);
+    color: var(--muted);
 }
 
-/* Tactile physical compression on click (Apple zero-latency principle) */
+/* Gives a little on press, so the click is felt the moment the pointer goes down */
 .navButton:active {
-    transform: scale(0.92);
+    transform: scale(0.97);
 }
 
-/* Active navigation state with warm ember capsule */
-.navButtonActive {
-    color: #e5753d;
-    background-color: rgba(229, 117, 61, 0.12);
+.navButtonActive,
+.navButtonActive:hover {
+    color: var(--text);
 }
 
-.railBottomSection {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+.navLabel {
+    font-size: 11px;
 }
 
-/* Profile avatar with online status indicator */
-.avatarContainer {
-    position: relative;
-}
-
+/* The signed in user's avatar, pushed to the bottom of the rail */
 .avatarRing {
+    margin-top: auto;
     width: 38px;
     height: 38px;
     border-radius: 50%;
-    background: #ffffff;
-    border: 1px solid #e5e5ea;
+    border: none;
+    background-color: var(--char-2);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 0.85rem;
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 600;
-    color: #1d1d1f;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: transform 120ms ease;
+    color: var(--text);
+    transition: transform 0.1s ease-out;
 }
 
 .avatarRing:active {
-    transform: scale(0.92);
-}
-
-.onlineIndicator {
-    position: absolute;
-    bottom: 0;
-    right: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #34c759; /* Apple system green */
-    border: 2px solid #f2f2f7;
+    transform: scale(0.97);
 }
 
 /* --------------------------------------------------------------------------
-   2. List Pane (Middle Column, 320px Native Conversation List)
+   2. Messages: the conversation list, a charcoal panel
    -------------------------------------------------------------------------- */
 .listPane {
-    width: 320px;
-    height: 100%;
+    composes: panel from '../../components/hearth/hearth.module.css';
+    width: 340px;
+    margin: 16px 0 16px 16px;
     display: flex;
     flex-direction: column;
-    background-color: #f9f9fb;
-    border-right: 1px solid #e5e5ea;
     flex-shrink: 0;
+    min-height: 0;
 }
 
 .listHeader {
-    height: 56px;
-    padding: 0 1rem;
+    padding: 20px 18px 12px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    border-bottom: 1px solid #e5e5ea;
 }
 
 .listTitle {
-    font-size: 1.35rem;
-    font-weight: 700;
-    letter-spacing: -0.025em;
-    color: #1d1d1f;
+    font-family: var(--serif);
+    font-weight: 560;
+    font-size: 25px;
+    letter-spacing: -0.015em;
+    color: var(--text);
     margin: 0;
 }
 
-/* Apple circular compose button */
+/* Round compose button, set apart by a lighter fill */
 .composeBtn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
-    border: 1px solid #e5e5ea;
-    background-color: #ffffff;
-    color: #1d1d1f;
+    border: none;
+    background-color: var(--char-2);
+    color: var(--text);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 120ms ease;
+    transition: background-color 0.15s, transform 0.1s ease-out;
 }
 
 .composeBtn:hover {
-    background-color: #f2f2f7;
-    border-color: #d1d1d6;
+    background-color: var(--char-3);
 }
 
 .composeBtn:active {
-    transform: scale(0.92);
+    transform: scale(0.97);
 }
 
-/* Apple capsule search bar */
 .searchContainer {
-    padding: 0.75rem 1rem 0.5rem 1rem;
+    padding: 0 18px 10px;
 }
 
+/* Pill field with a charcoal outline */
 .searchInputWrapper {
+    composes: rough from '../../components/hearth/hearth.module.css';
+    height: 40px;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.75rem;
-    border-radius: 8px;
-    background-color: #e9e9eb; /* Native macOS search capsule color */
-    color: #8e8e93;
-    transition: background 150ms ease, box-shadow 150ms ease;
+    gap: 8px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    background-color: rgba(11, 9, 7, 0.6);
+    color: var(--faint);
+    transition: background-color 0.15s;
 }
 
 .searchInputWrapper:focus-within {
-    background-color: #ffffff;
-    box-shadow: 0 0 0 2px #e5753d;
-    color: #1d1d1f;
+    background-color: var(--char-2);
+}
+
+.searchInputWrapper:has(input:focus-visible),
+.dockInputWrapper:has(input:focus-visible) {
+    outline: 2px solid var(--muted);
+    outline-offset: 2px;
 }
 
 .searchInput {
     flex: 1;
+    min-width: 0;
     background: transparent;
     border: none;
     outline: none;
-    color: #1d1d1f;
+    color: var(--text);
     font-family: inherit;
-    font-size: 0.85rem;
+    font-size: 14px;
 }
 
 .searchInput::placeholder {
-    color: #8e8e93;
+    color: var(--faint);
 }
 
-/* Filter pills (All, Unread) */
+/* Filter pills: the chosen one takes a lighter fill */
 .filterPillsRow {
-    padding: 0.25rem 1rem 0.6rem 1rem;
+    padding: 0 18px 12px;
     display: flex;
-    gap: 0.4rem;
-    border-bottom: 1px solid #e5e5ea;
+    gap: 6px;
 }
 
 .filterPill {
-    padding: 0.25rem 0.75rem;
-    border-radius: 6px;
+    height: 30px;
+    padding: 0 14px;
+    border-radius: var(--radius-pill);
     border: none;
-    font-size: 0.75rem;
-    font-weight: 500;
+    font-family: inherit;
+    font-size: 13px;
     cursor: pointer;
     background: transparent;
-    color: #8e8e93;
-    transition: all 120ms ease;
+    color: var(--muted);
+    transition: background-color 0.15s, color 0.15s;
 }
 
-.filterPillActive {
-    background-color: #ffffff;
-    color: #1d1d1f;
+.filterPill:hover {
+    color: var(--text);
+}
+
+.filterPillActive,
+.filterPillActive:hover {
+    background-color: var(--char-3);
+    color: var(--text);
     font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
-/* Conversation list container */
 .listBody {
     flex: 1;
     overflow-y: auto;
-    padding: 0.5rem;
+    padding: 0 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 2px;
 }
 
-/* Individual Apple-style conversation item */
+/* One conversation */
 .chatItem {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.75rem;
-    border-radius: 10px;
+    gap: 12px;
+    padding: 10px 8px;
+    border-radius: var(--radius-row);
     cursor: pointer;
-    transition: background-color 120ms ease;
+    transition: background-color 0.15s;
     user-select: none;
 }
 
 .chatItem:hover {
-    background-color: #f0f0f4;
+    background-color: rgba(43, 37, 31, 0.5);
 }
 
-.chatItem:active {
-    transform: scale(0.98);
+.chatItemActive,
+.chatItemActive:hover {
+    background-color: rgba(43, 37, 31, 0.95);
 }
 
-.chatItemActive {
-    background-color: #e5e5ea !important;
-}
-
+/* The Ember Hearth channel's avatar: the flame on a coal that breathes with the fire */
 .chatAvatar {
     width: 42px;
     height: 42px;
     border-radius: 50%;
-    background: linear-gradient(135deg, #e5753d, #b2451a);
-    color: #ffffff;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    flex-shrink: 0;
+    color: #ffb072;
+    background: radial-gradient(circle at 50% 78%, #3d2214 0%, #110d0a 72%);
+    box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.7), 0 0 calc(20px * var(--flick, 1)) rgba(229, 117, 61, 0.45);
 }
 
 .chatDetails {
@@ -308,217 +335,315 @@
     min-width: 0;
     display: flex;
     flex-direction: column;
-    gap: 0.15rem;
+    gap: 1px;
 }
 
 .chatTopRow {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
 }
 
 .chatName {
-    font-size: 0.88rem;
+    font-size: 14px;
     font-weight: 600;
-    color: #1d1d1f;
+    color: var(--text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+/* Fresh, so it is written in the hot ember colour */
 .chatTime {
-    font-size: 0.72rem;
-    color: #8e8e93;
+    font-size: 12px;
+    color: var(--ember-hot);
     flex-shrink: 0;
+    font-variant-numeric: tabular-nums; /* every digit takes the same width, so times line up */
 }
 
 .chatBottomRow {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
 .chatSnippet {
-    font-size: 0.78rem;
-    color: #8e8e93;
+    font-size: 13px;
+    color: var(--muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     margin: 0;
 }
 
+/* Unread: a live spark */
 .unreadBadge {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background-color: #e5753d;
     flex-shrink: 0;
+    background-color: var(--accent);
+    box-shadow: 0 0 calc(8px * var(--flick, 1)) rgba(229, 117, 61, 0.8);
 }
 
 /* --------------------------------------------------------------------------
-   3. Detail / Chat Stage (Right-most expansive canvas, integrated window)
+   3. Messages: the chat stage, open to the room
    -------------------------------------------------------------------------- */
 .stagePane {
     flex: 1;
+    min-width: 0;
     height: 100%;
     display: flex;
     flex-direction: column;
-    background-color: #ffffff;
-    position: relative;
+    padding: 16px 28px 20px;
 }
 
-/* Integrated top header bar (aligns with List Pane header) */
 .stageHeader {
-    height: 56px;
-    padding: 0 1.5rem;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #e5e5ea;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 4px 14px;
     flex-shrink: 0;
 }
 
 .stageHeaderTitle {
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: #1d1d1f;
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 560;
+    letter-spacing: -0.01em;
+    color: var(--text);
 }
 
 .stageHeaderMeta {
-    font-size: 0.78rem;
-    color: #8e8e93;
+    font-size: 13px;
+    color: var(--faint);
 }
 
-/* Empty / Welcome center canvas (Integrated, NO floating card) */
+/* The empty conversation: a small hearth burns above the words */
 .stageEmptyContent {
     flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
     text-align: center;
-    gap: 0.75rem;
+    padding: 2rem 0;
+    gap: 12px;
 }
 
-.emptyBadge {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    background-color: #f2f2f7;
-    color: #8e8e93;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 0.25rem;
+/* An empty box the hearth canvas lights: the fire burns in its centre */
+.hearthSpot {
+    width: 160px;
+    height: 140px;
+    margin-bottom: 4px;
 }
 
 .emptyHeading {
-    font-size: 1.35rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1d1d1f;
+    font-family: var(--serif);
+    font-size: 30px;
+    font-weight: 560;
+    letter-spacing: -0.015em;
+    line-height: 1.15;
+    color: var(--text);
     margin: 0;
 }
 
 .emptySubtitle {
-    font-size: 0.88rem;
-    line-height: 1.5;
-    color: #8e8e93;
-    max-width: 320px;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--muted);
+    max-width: 380px;
     margin: 0;
 }
 
+/* The screen's one primary button: a light pill with dark text */
 .primaryPillBtn {
-    margin-top: 0.75rem;
-    padding: 0.55rem 1.25rem;
-    border-radius: 999px;
+    margin-top: 10px;
+    height: 42px;
+    padding: 0 24px;
+    border-radius: var(--radius-pill);
     border: none;
-    background-color: #e5753d;
-    color: #ffffff;
-    font-size: 0.85rem;
+    background-color: var(--text);
+    color: var(--char-0);
+    font-family: inherit;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(229, 117, 61, 0.25);
-    transition: all 120ms ease;
+    transition: background-color 0.15s, transform 0.1s ease-out;
 }
 
 .primaryPillBtn:hover {
-    background-color: #d05e26;
-    box-shadow: 0 2px 6px rgba(229, 117, 61, 0.35);
+    background-color: #ffffff;
 }
 
 .primaryPillBtn:active {
-    transform: scale(0.96);
+    transform: scale(0.97);
 }
 
-/* Bottom Apple message input dock */
+/* Bottom message composer */
 .chatInputDock {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid #e5e5ea;
-    background-color: #ffffff;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 10px;
+    padding-top: 10px;
     flex-shrink: 0;
 }
 
 .dockInputWrapper {
+    composes: rough from '../../components/hearth/hearth.module.css';
     flex: 1;
+    height: 48px;
     display: flex;
     align-items: center;
-    padding: 0.5rem 0.85rem;
-    border-radius: 20px;
-    background-color: #f2f2f7;
-    border: 1px solid #e5e5ea;
+    padding: 0 18px;
+    border-radius: var(--radius-pill);
+    background-color: rgba(22, 18, 15, 0.96); /* nearly solid, so embers drifting behind it never sit under the text */
+    box-shadow: inset 0 -1px 0 rgba(255, 140, 60, calc(0.18 * var(--flick, 1))); /* firelight from below on its lower edge */
+    transition: background-color 0.15s;
+}
+
+.dockInputWrapper:focus-within {
+    background-color: var(--char-2);
 }
 
 .dockInput {
     flex: 1;
+    min-width: 0;
     background: transparent;
     border: none;
     outline: none;
-    color: #1d1d1f;
-    font-size: 0.88rem;
+    color: var(--text);
+    font-size: 14.5px;
     font-family: inherit;
 }
 
 .dockInput::placeholder {
-    color: #8e8e93;
+    color: var(--faint);
 }
 
 .dockSendBtn {
-    width: 32px;
-    height: 32px;
+    width: 48px;
+    height: 48px;
     border-radius: 50%;
     border: none;
-    background-color: #e5753d;
-    color: #ffffff;
+    background-color: var(--text);
+    color: var(--char-0);
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 120ms ease;
+    flex-shrink: 0;
+    transition: background-color 0.15s, transform 0.1s ease-out;
 }
 
 .dockSendBtn:hover {
-    background-color: #d05e26;
+    background-color: #ffffff;
 }
 
 .dockSendBtn:active {
-    transform: scale(0.92);
+    transform: scale(0.95);
 }
 
-/* Accessibility: reduce motion support */
+/* --------------------------------------------------------------------------
+   4. Settings placeholder
+   -------------------------------------------------------------------------- */
+.settingsPane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    text-align: center;
+    padding: 2rem;
+}
+
+.settingsTitle {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 560;
+    letter-spacing: -0.015em;
+    color: var(--text);
+    margin: 0;
+}
+
+.settingsText {
+    font-size: 14px;
+    color: var(--muted);
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   5. Phones: the rail becomes a bar along the bottom, panes stack
+   -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+    .dashboardContainer {
+        flex-direction: column;
+        padding-bottom: 66px; /* keeps content clear of the bottom bar */
+    }
+
+    .navRail {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 5;
+        width: auto;
+        height: 66px;
+        flex-direction: row;
+        padding: 0 10px;
+        background-color: rgba(11, 9, 7, 0.95);
+    }
+
+    .navRail::after {
+        top: 0;
+        bottom: auto;
+        left: 0;
+        right: 0;
+        border-right: none;
+        border-top: 1.3px solid rgba(214, 198, 180, 0.2);
+    }
+
+    .brandIcon,
+    .avatarRing {
+        display: none;
+    }
+
+    .navGroup {
+        flex-direction: row;
+        flex: 1;
+        justify-content: space-around;
+        margin: 0;
+    }
+
+    .listPane {
+        width: auto;
+        max-height: 42vh;
+        margin: 12px;
+    }
+
+    .stagePane {
+        flex: 1;
+        min-height: 0;
+        padding: 0 14px 12px;
+    }
+}
+
+/* Reduced motion: the room appears without rising, and presses do not shrink */
 @media (prefers-reduced-motion: reduce) {
+    .dashboardContainer {
+        animation: none;
+    }
+
     .navButton,
+    .avatarRing,
     .composeBtn,
     .chatItem,
     .primaryPillBtn,
-    .dockSendBtn,
-    .avatarRing {
-        transition: none !important;
-        transform: none !important;
+    .dockSendBtn {
+        transition: none;
+        transform: none;
     }
 }

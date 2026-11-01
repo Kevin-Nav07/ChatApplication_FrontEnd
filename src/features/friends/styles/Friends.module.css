@@ -1,588 +1,719 @@
 /* ==========================================================================
-   Friends Feature Styles (Method 3: Split-View Partitioned Dashboard)
-   Built on Apple Human Interface Guidelines with light neutral materials,
-   hairline structural borders, San Francisco typography, and zero artificial glow.
+   Friends: the circle around the fire
+   Colours, fonts and radii come from the tokens on .dashboardContainer
+   (DashboardPage.module.css). Charcoal outlines and panels are composed from
+   the shared hearth materials. The fire itself is drawn on a canvas behind
+   this screen, centred on .circle because it carries data-hearth-fire.
    ========================================================================== */
 
-/* Master container holding the left 320px friends list and the right split stage */
+/* Master container: the stage with the circle, and the list panel beside it */
 .friendsContainer {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 350px;
     flex: 1;
+    min-width: 0;
     height: 100%;
     overflow: hidden;
-    background-color: #ffffff;
 }
 
 /* --------------------------------------------------------------------------
-   1. Left Column: Confirmed Friends List Pane (320px)
+   1. Stage: title, add friend form, and the circle
    -------------------------------------------------------------------------- */
-.friendsListPane {
-    width: 320px;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background-color: #f9f9fb;
-    border-right: 1px solid #e5e5ea;
-    flex-shrink: 0;
-}
-
-/* Top header aligning with the 56px application baseline */
-.friendsListHeader {
-    height: 56px;
-    padding: 0 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    border-bottom: 1px solid #e5e5ea;
-    flex-shrink: 0;
-}
-
-.friendsListTitle {
-    font-size: 1.15rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: #1d1d1f;
-    margin: 0;
-}
-
-/* Small pill badge showing the count of confirmed friends */
-.countBadge {
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.2rem 0.55rem;
-    border-radius: 999px;
-    background-color: #e9e9eb;
-    color: #1d1d1f;
-}
-
-/* Search bar capsule container */
-.searchContainer {
-    padding: 0.75rem 1rem;
-    border-bottom: 1px solid #e5e5ea;
-}
-
-.searchInputWrapper {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.45rem 0.75rem;
-    border-radius: 8px;
-    background-color: #e9e9eb;
-    color: #8e8e93;
-    transition: background 150ms ease, box-shadow 150ms ease;
-}
-
-.searchInputWrapper:focus-within {
-    background-color: #ffffff;
-    box-shadow: 0 0 0 2px #e5753d;
-    color: #1d1d1f;
-}
-
-.searchInput {
-    flex: 1;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: #1d1d1f;
-    font-family: inherit;
-    font-size: 0.85rem;
-}
-
-.searchInput::placeholder {
-    color: #8e8e93;
-}
-
-/* Scrollable container for confirmed friend rows */
-.friendsListBody {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
-}
-
-/* Individual confirmed friend row item */
-.friendItemRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0.75rem;
-    border-radius: 10px;
-    background: transparent;
-    transition: background-color 120ms ease;
-    user-select: none;
-}
-
-.friendItemRow:hover {
-    background-color: #f0f0f4;
-}
-
-.friendItemLeft {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-}
-
-/* Avatar circle displaying user initial */
-.friendAvatar {
-    width: 38px;
-    height: 38px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #e5753d, #b2451a);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.88rem;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.friendMeta {
+.stage {
     display: flex;
     flex-direction: column;
     min-width: 0;
+    min-height: 0;
+    padding: 30px 36px 0;
 }
 
-.friendUsername {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #1d1d1f;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.friendSubtext {
-    font-size: 0.72rem;
-    color: #8e8e93;
-}
-
-/* Direct message action button on hover */
-.directMessageBtn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: 1px solid #e5e5ea;
-    background-color: #ffffff;
-    color: #8e8e93;
+.stageHead {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 120ms ease;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 20px 32px;
 }
 
-.directMessageBtn:hover {
-    color: #e5753d;
-    border-color: #d1d1d6;
-    background-color: #f2f2f7;
-}
-
-.directMessageBtn:active {
-    transform: scale(0.92);
-}
-
-/* Groups the message and remove buttons on the right side of a friend row */
-.friendActions {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    flex-shrink: 0;
-}
-
-/* Remove friend icon button, same shape as the message button but turns red on hover to signal a destructive action */
-.removeFriendBtn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
-    border: 1px solid #e5e5ea;
-    background-color: #ffffff;
-    color: #8e8e93;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-    transition: all 120ms ease;
-}
-
-.removeFriendBtn:hover {
-    color: #ff3b30;
-    border-color: rgba(255, 59, 48, 0.3);
-    background-color: rgba(255, 59, 48, 0.08);
-}
-
-.removeFriendBtn:active {
-    transform: scale(0.92);
-}
-
-/* Empty state message inside list body */
-.emptyListMessage {
-    padding: 2rem 1rem;
-    text-align: center;
-    color: #8e8e93;
-    font-size: 0.82rem;
-}
-
-/* --------------------------------------------------------------------------
-   2. Right Column: Split Stage Canvas (Flex 1)
-   -------------------------------------------------------------------------- */
-.friendsStagePane {
-    flex: 1;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    background-color: #ffffff;
-    padding: 1.5rem;
-    gap: 1.5rem;
-    overflow-y: auto;
-}
-
-/* --------------------------------------------------------------------------
-   Top Card: Add Friend Card
-   -------------------------------------------------------------------------- */
-.addFriendCard {
-    padding: 1.25rem 1.5rem;
-    border-radius: 14px;
-    background-color: #f9f9fb;
-    border: 1px solid #e5e5ea;
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    flex-shrink: 0;
-}
-
-.addFriendHeader {
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-
-.addFriendTitle {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #1d1d1f;
+/* The screen's title in the warm serif; large type sits slightly tighter */
+.title {
+    font-family: var(--serif);
+    font-weight: 560;
+    font-size: 32px;
+    line-height: 1.1;
+    letter-spacing: -0.015em;
+    color: var(--text);
     margin: 0;
 }
 
-.addFriendSubtitle {
-    font-size: 0.8rem;
-    color: #8e8e93;
+.subtitle {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+/* "2 waiting at the edge of the light" glows warm, because it is the thing that needs an answer */
+.subtitleWarm {
+    font-style: normal;
+    color: var(--ember-hot);
+}
+
+/* Add friend form */
+.addForm {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
     margin: 0;
 }
 
-.addFriendForm {
+.addLabel {
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.addRow {
     display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
 }
 
-.addFriendInput {
-    flex: 1;
-    padding: 0.55rem 0.85rem;
-    border-radius: 10px;
-    background-color: #ffffff;
-    border: 1px solid #e5e5ea;
-    color: #1d1d1f;
-    font-size: 0.85rem;
-    outline: none;
-    transition: border-color 150ms ease, box-shadow 150ms ease;
+.addRow .field {
+    width: 240px;
 }
 
-.addFriendInput:focus {
-    border-color: #e5753d;
-    box-shadow: 0 0 0 2px rgba(229, 117, 61, 0.15);
-}
-
-.addFriendInput::placeholder {
-    color: #8e8e93;
-}
-
-.sendRequestBtn {
-    padding: 0.55rem 1.25rem;
-    border-radius: 10px;
-    border: none;
-    background-color: #e5753d;
-    color: #ffffff;
-    font-size: 0.85rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 1px 3px rgba(229, 117, 61, 0.25);
-    transition: all 120ms ease;
-    white-space: nowrap;
-}
-
-.sendRequestBtn:hover {
-    background-color: #d05e26;
-}
-
-.sendRequestBtn:active {
-    transform: scale(0.96);
-}
-
+/* One line under the form, always present so the layout does not jump when a message appears */
 .feedbackText {
-    font-size: 0.75rem;
-    color: #34c759;
-    margin-top: 0.25rem;
+    min-height: 19px;
+    margin: 0;
+    font-size: 13px;
+    color: var(--muted);
 }
 
-/* Added alongside feedbackText when the request failed */
-.feedbackTextError {
-    color: #ff3b30;
+.feedbackSuccess {
+    color: var(--ember-hot);
 }
 
-/* Banner at the top of the stage for failed loads and actions */
+.feedbackError {
+    color: var(--negative);
+}
+
+/* A notice on charred paper: red text on a dark red tint with a charcoal edge */
 .errorBanner {
+    composes: rough from '../../../components/hearth/hearth.module.css';
+    max-width: 720px;
+    margin-top: 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 1rem;
-    padding: 0.65rem 1rem;
-    border-radius: 10px;
-    background-color: rgba(255, 59, 48, 0.08);
-    border: 1px solid rgba(255, 59, 48, 0.3);
-    color: #c4271d;
-    font-size: 0.8rem;
-    flex-shrink: 0;
+    padding: 0.7rem 1rem;
+    border-radius: var(--radius-row);
+    background-color: var(--negative-bg);
+    color: var(--negative);
+    font-size: 13px;
 }
 
 .errorBannerClose {
     border: none;
     background: transparent;
     color: inherit;
-    font-size: 1rem;
+    font-size: 1.1rem;
     line-height: 1;
     cursor: pointer;
 }
 
-/* Any action button that is disabled while a request is running looks faded and cannot be clicked */
-.sendRequestBtn:disabled,
+/* --------------------------------------------------------------------------
+   2. The circle
+   -------------------------------------------------------------------------- */
+.circleWrap {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 76px; /* room under the circle for the people waiting at its bottom edge */
+}
+
+/* Square, sized by FriendsCircle. --k scales the coals so a small circle does not get crowded */
+.circle {
+    position: relative;
+    flex: none;
+}
+
+.rings {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+}
+
+/* The two solid rings are drawn on like charcoal: the dash is as long as the circle and slides into place */
+.ringLine {
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    animation: drawRing 1.6s var(--ease) forwards;
+}
+
+.ringLine + .ringLine {
+    animation-delay: 0.25s;
+}
+
+.ringDashed {
+    opacity: 0;
+    animation: fadeIn 1.2s 0.6s forwards;
+}
+
+/* Ring labels in the serif's italic, written along the top of each ring */
+.ringText {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 1.85px; /* SVG units: the rings live in a 100 by 100 box */
+    letter-spacing: 0.03em;
+    fill: rgba(214, 198, 180, 0.5);
+    opacity: 0;
+    animation: fadeIn 1s 0.9s forwards;
+}
+
+@keyframes drawRing {
+    to { stroke-dashoffset: 0; }
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; }
+}
+
+.seats {
+    position: absolute;
+    inset: 0;
+}
+
+/* A seat is a zero sized point at the person's spot; the coal and the name hang off it.
+   Each one fades in a moment after the last, as if catching from the fire */
+.seat {
+    position: absolute;
+    width: 0;
+    height: 0;
+    animation: seatArrive 0.7s var(--ease) var(--arrive-delay, 0ms) both;
+}
+
+@keyframes seatArrive {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Closer rings get bigger coals, which gives the circle depth */
+.ring0 { --size: calc(52px * var(--k, 1)); }
+.ring1 { --size: calc(45px * var(--k, 1)); }
+.ring2 { --size: calc(40px * var(--k, 1)); }
+.waiting { --size: calc(38px * var(--k, 1)); }
+
+/* Hovered here or in the list */
+.hl .coal {
+    transform: translateY(-3px) scale(1.06);
+}
+
+.hl .seatName {
+    color: var(--text);
+    opacity: 1;
+}
+
+/* Fades seats that do not match the search. It targets the children, because the seat's own
+   opacity is held at 1 by its entrance animation, and a running or held animation beats a normal rule */
+.dim .coal,
+.dim .seatName,
+.dim .seatLabel {
+    opacity: 0.18;
+}
+
+/* A person, drawn as a coal. --heat is their colour temperature, --halo the glow it gives off */
+.coal {
+    width: var(--size, 36px);
+    height: var(--size, 36px);
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    font: 600 calc(var(--size, 36px) * 0.36) / 1 var(--font);
+    color: var(--text);
+    background: radial-gradient(circle at 50% 78%, color-mix(in srgb, var(--heat, #6f675f) 34%, #15100c) 0%, #110d0a 72%);
+    box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 calc(22px * var(--flick, 1)) var(--halo, transparent);
+    transition: transform 0.25s var(--ease);
+}
+
+button.coal {
+    cursor: pointer;
+}
+
+/* In the circle a coal sits centred on its point, dims with distance from the fire, and breathes at its own pace */
+.seat .coal {
+    position: absolute;
+    left: calc(var(--size) / -2);
+    top: calc(var(--size) / -2);
+    filter: brightness(calc(0.5 + 0.5 * var(--lit, 1)));
+    animation: breathe var(--breath-length, 3.6s) ease-in-out var(--breath-delay, 0s) infinite;
+}
+
+.seat .coal:hover {
+    transform: translateY(-3px) scale(1.06);
+}
+
+@keyframes breathe {
+    0%, 100% { box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 12px var(--halo, transparent); }
+    50% { box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 30px var(--halo, transparent); }
+}
+
+/* Someone not yet in the circle: no heat of their own, a dark coal whose ring slowly catches the light */
+.coalCold {
+    background: #120f0d;
+    color: var(--faint);
+    box-shadow: 0 0 0 1.5px rgba(214, 198, 180, 0.2);
+}
+
+.seat .coalCold {
+    filter: none;
+    animation: waitPulse 3.4s ease-in-out infinite;
+}
+
+@keyframes waitPulse {
+    0%, 100% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.14), 0 0 0 rgba(229, 117, 61, 0); }
+    50% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.55), 0 0 18px rgba(229, 117, 61, 0.35); }
+}
+
+.seatName {
+    position: absolute;
+    top: calc(var(--size) / 2 + 7px);
+    left: 0;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-size: max(11px, calc(12.5px * var(--k, 1)));
+    color: var(--muted);
+    opacity: calc(0.45 + 0.55 * var(--lit, 1));
+    pointer-events: none;
+    transition: color 0.2s, opacity 0.2s;
+}
+
+/* On a small circle, friends' names would overlap their neighbours, so they show only when hovered.
+   Every coal still carries the name for screen readers, and the full list sits right below */
+.compact .seat > .seatName {
+    opacity: 0;
+}
+
+.compact .hl > .seatName {
+    opacity: 1;
+}
+
+/* Name, time and actions under a waiting person */
+.seatLabel {
+    position: absolute;
+    top: calc(var(--size) / 2 + 8px);
+    left: 0;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    white-space: nowrap;
+}
+
+.seatLabel .seatName {
+    position: static;
+    transform: none;
+    opacity: 1;
+    color: var(--text);
+    font-weight: 600;
+}
+
+.seatMeta {
+    font-size: 12px;
+}
+
+.seatActions {
+    display: flex;
+    gap: 4px;
+    margin-top: 7px;
+}
+
+/* Words under the fire when the circle is empty or still loading */
+.circleCaption {
+    position: absolute;
+    top: 64%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    margin: 0;
+    text-align: center;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    line-height: 1.5;
+    color: var(--muted);
+}
+
+.moreWaiting {
+    position: absolute;
+    top: calc(100% + 54px);
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    white-space: nowrap;
+    font-size: 12px;
+    color: var(--faint);
+}
+
+/* --------------------------------------------------------------------------
+   3. Everyone: the list panel
+   -------------------------------------------------------------------------- */
+.listPanel {
+    composes: panel from '../../../components/hearth/hearth.module.css';
+    margin: 16px 16px 16px 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.listTop {
+    padding: 20px 18px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.panelTitle {
+    font-family: var(--serif);
+    font-weight: 560;
+    font-size: 19px;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    margin: 0;
+}
+
+/* Pill field with a charcoal outline, used for search and for the username */
+.field {
+    composes: rough from '../../../components/hearth/hearth.module.css';
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    background-color: rgba(22, 18, 15, 0.92);
+    color: var(--faint);
+    transition: background-color 0.15s;
+}
+
+.field input {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: 0;
+    outline: 0;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+.field input::placeholder {
+    color: var(--faint);
+}
+
+.field:focus-within {
+    background-color: var(--char-2);
+}
+
+/* The focus ring for a field goes on the whole pill, not the bare input inside it */
+.field:focus-within:has(input:focus-visible) {
+    outline: 2px solid var(--muted);
+    outline-offset: 2px;
+}
+
+.listScroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 10px 14px;
+}
+
+.listHead {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+    padding: 16px 8px 6px;
+    font: 500 13px var(--font);
+    color: var(--muted);
+}
+
+.listHead span {
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.listHeadWarm span {
+    color: var(--ember-hot);
+}
+
+/* One person in the list */
+.row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 8px;
+    border-radius: var(--radius-row);
+    transition: background-color 0.15s;
+}
+
+.row:hover,
+.rowHighlighted {
+    background-color: rgba(43, 37, 31, 0.6);
+}
+
+.row .coal {
+    --size: 36px;
+}
+
+.rowMeta {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+}
+
+.rowName {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rowSub {
+    font-size: 12px;
+    color: var(--faint);
+    white-space: nowrap;
+}
+
+.rowSubDanger {
+    color: var(--negative);
+}
+
+.rowActions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex: none;
+}
+
+.emptyLine {
+    margin: 0;
+    padding: 2px 8px 8px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 14px;
+    color: var(--faint);
+}
+
+/* --------------------------------------------------------------------------
+   4. Buttons
+   -------------------------------------------------------------------------- */
+/* The screen's one primary button: a light pill with dark text */
+.primaryBtn {
+    height: 40px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--text);
+    color: var(--char-0);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, transform 0.1s ease-out;
+}
+
+.primaryBtn:hover {
+    background-color: #ffffff;
+}
+
+.primaryBtn:disabled {
+    background-color: var(--char-3);
+    color: var(--faint);
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Accept: an outlined pill that warms on hover */
+.acceptBtn {
+    height: 30px;
+    padding: 0 13px;
+    border: 1px solid rgba(214, 198, 180, 0.32);
+    border-radius: var(--radius-pill);
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, border-color 0.15s, transform 0.1s ease-out;
+}
+
+.acceptBtn:hover {
+    border-color: var(--accent);
+    background-color: rgba(229, 117, 61, 0.1);
+}
+
+/* Decline, Cancel, Keep: text until hovered */
+.textActionBtn {
+    height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background: none;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12.5px;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, transform 0.1s ease-out;
+}
+
+.textActionBtn:hover {
+    color: var(--text);
+    background-color: var(--char-2);
+}
+
+/* The confirming Remove: red, because it ends the friendship */
+.removeConfirmBtn {
+    height: 30px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    background-color: var(--negative-bg);
+    color: var(--negative);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.1s ease-out;
+}
+
+/* Plain icon buttons in friend rows */
+.iconBtn {
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--faint);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s, transform 0.1s ease-out;
+}
+
+.iconBtn:hover {
+    color: var(--text);
+    background-color: var(--char-2);
+}
+
+.iconBtnDanger:hover {
+    color: var(--negative);
+    background-color: var(--negative-bg);
+}
+
+/* Every button gives a little on press, so the click is felt the moment the pointer goes down */
+.primaryBtn:active,
+.acceptBtn:active,
+.textActionBtn:active,
+.removeConfirmBtn:active,
+.iconBtn:active {
+    transform: scale(0.97);
+}
+
 .acceptBtn:disabled,
-.declineBtn:disabled,
-.cancelBtn:disabled,
-.removeFriendBtn:disabled {
+.textActionBtn:disabled,
+.removeConfirmBtn:disabled,
+.iconBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
     transform: none;
 }
 
 /* --------------------------------------------------------------------------
-   Bottom Card: Requests Drawer Card (Incoming & Sent Pending)
+   5. Tablets and phones: one column that scrolls, the circle above the list
    -------------------------------------------------------------------------- */
-.requestsDrawerCard {
-    flex: 1;
-    min-height: 280px;
-    border-radius: 14px;
-    background-color: #ffffff;
-    border: 1px solid #e5e5ea;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
+@media (max-width: 900px) {
+    .friendsContainer {
+        display: block;
+        overflow-y: auto;
+    }
+
+    .stage {
+        padding: 22px 16px 0;
+    }
+
+    .title {
+        font-size: 28px;
+    }
+
+    .addForm {
+        width: 100%;
+    }
+
+    .addRow .field {
+        flex: 1;
+        width: auto;
+    }
+
+    .circleWrap {
+        padding: 30px 0 64px;
+    }
+
+    /* The same buttons sit in the list just below, and on a small circle two rows of them would collide */
+    .seatActions {
+        display: none;
+    }
+
+    .listPanel {
+        margin: 0 12px 24px;
+    }
+
+    .listScroll {
+        overflow: visible;
+    }
 }
 
-.drawerHeader {
-    padding: 0.85rem 1.25rem;
-    border-bottom: 1px solid #e5e5ea;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    background-color: #f9f9fb;
-}
+/* Reduced motion: everything appears in place. The rings are shown fully drawn instead of animating */
+@media (prefers-reduced-motion: reduce) {
+    .seat,
+    .seat .coal,
+    .seat .coalCold,
+    .ringLine,
+    .ringDashed,
+    .ringText {
+        animation: none;
+    }
 
-/* Segmented tab switcher for Incoming vs Sent */
-.segmentedGroup {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    background-color: #e9e9eb;
-    padding: 0.25rem;
-    border-radius: 8px;
-}
+    .ringLine {
+        stroke-dashoffset: 0;
+    }
 
-.segmentedTab {
-    padding: 0.3rem 0.75rem;
-    border-radius: 6px;
-    border: none;
-    font-size: 0.78rem;
-    font-weight: 500;
-    cursor: pointer;
-    background: transparent;
-    color: #8e8e93;
-    transition: all 120ms ease;
-}
+    .ringDashed,
+    .ringText {
+        opacity: 1;
+    }
 
-.segmentedTabActive {
-    background-color: #ffffff;
-    color: #1d1d1f;
-    font-weight: 600;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+    .coal,
+    .row,
+    .primaryBtn,
+    .acceptBtn,
+    .textActionBtn,
+    .removeConfirmBtn,
+    .iconBtn {
+        transition: none;
+    }
 }
-
-.drawerSubtitle {
-    font-size: 0.75rem;
-    color: #8e8e93;
-}
-
-.requestsListBody {
-    flex: 1;
-    overflow-y: auto;
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-}
-
-/* Individual request item row */
-.requestItemRow {
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    background-color: #f9f9fb;
-    border: 1px solid #e5e5ea;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-}
-
-.requestItemLeft {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    min-width: 0;
-}
-
-.requestAvatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background-color: #e5753d;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.85rem;
-    font-weight: 600;
-    flex-shrink: 0;
-}
-
-.requestMeta {
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-}
-
-.requestUsername {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #1d1d1f;
-}
-
-.requestCaption {
-    font-size: 0.72rem;
-    color: #8e8e93;
-}
-
-.requestActionGroup {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-shrink: 0;
-}
-
-/* Action button to accept incoming request */
-.acceptBtn {
-    padding: 0.35rem 0.85rem;
-    border-radius: 8px;
-    border: none;
-    background-color: #34c759;
-    color: #ffffff;
-    font-size: 0.78rem;
-    font-weight: 600;
-    cursor: pointer;
-    box-shadow: 0 1px 2px rgba(52, 199, 89, 0.2);
-    transition: all 120ms ease;
-}
-
-.acceptBtn:hover {
-    background-color: #2bb04c;
-}
-
-.acceptBtn:active {
-    transform: scale(0.94);
-}
-
-/* Action button to decline incoming request */
-.declineBtn {
-    padding: 0.35rem 0.85rem;
-    border-radius: 8px;
-    border: 1px solid #e5e5ea;
-    background-color: #ffffff;
-    color: #8e8e93;
-    font-size: 0.78rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 120ms ease;
-}
-
-.declineBtn:hover {
-    color: #1d1d1f;
-    border-color: #d1d1d6;
-    background-color: #f2f2f7;
-}
-
-.declineBtn:active {
-    transform: scale(0.94);
-}
-
-/* Action button to cancel sent pending request */
-.cancelBtn {
-    padding: 0.35rem 0.85rem;
-    border-radius: 8px;
-    border: 1px solid #e5e5ea;
-    background-color: #ffffff;
-    color: #ff3b30;
-    font-size: 0.78rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 120ms ease;
-}
-
-.cancelBtn:hover {
-    background-color: rgba(255, 59, 48, 0.08);
-    border-color: rgba(255, 59, 48, 0.3);
-}
-
-.cancelBtn:active {
-    transform: scale(0.94);
-}
-
-/* Empty placeholder inside requests drawer */
-.emptyRequestsBox {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 2.5rem;
-    text-align: center;
-    color: #8e8e93;
-    gap: 0.25rem;
-}
-
-.emptyRequestsTitle {
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #1d1d1f;
-    margin: 0;
-}
-
-.emptyRequestsDesc {
-    font-size: 0.78rem;
-    color: #8e8e93;
-    margin: 0;
-}
-

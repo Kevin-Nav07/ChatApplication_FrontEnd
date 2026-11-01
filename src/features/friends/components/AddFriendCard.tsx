@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import styles from '../styles/Friends.module.css';
 import { getErrorMessage } from '../../../models/AppError';
+import { useHearth } from '../../../components/hearth/useHearth';
 
 // Props definition for the AddFriendCard component
 interface AddFriendCardProps {
@@ -14,7 +15,7 @@ interface Feedback {
     text: string;
 }
 
-// Component that renders the top stage card allowing users to search and add friends
+// Component that renders the add friend form in the friends header
 export default function AddFriendCard({ onSendRequest }: AddFriendCardProps): React.JSX.Element {
     // Local state to track the username input field value
     const [targetUsername, setTargetUsername] = useState<string>('');
@@ -22,6 +23,9 @@ export default function AddFriendCard({ onSendRequest }: AddFriendCardProps): Re
     const [feedback, setFeedback] = useState<Feedback | null>(null);
     // True while the request is on its way to the server, used to stop double submits
     const [isSending, setIsSending] = useState<boolean>(false);
+    // The button element, so sparks can fly from it when the request goes through
+    const buttonRef = useRef<HTMLButtonElement>(null);
+    const hearth = useHearth();
 
     // Handles form submission, waits for the server before telling the user it worked
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -35,8 +39,12 @@ export default function AddFriendCard({ onSendRequest }: AddFriendCardProps): Re
         setFeedback(null);
         try {
             await onSendRequest(trimmed);
-            setFeedback({ type: 'success', text: `Friend request sent to ${trimmed}` });
+            setFeedback({ type: 'success', text: `Request sent to ${trimmed}` });
             setTargetUsername(''); // only cleared on success so a typo can be fixed without retyping everything
+            const rect = buttonRef.current?.getBoundingClientRect();
+            if (rect) {
+                hearth.burst(rect.left + rect.width / 2, rect.top, 12, 0.8); // a few sparks off the button as the request leaves
+            }
         }
         catch (error: unknown) {
             setFeedback({ type: 'error', text: getErrorMessage(error) }); // shows the server's reason, such as an unknown username
@@ -47,45 +55,44 @@ export default function AddFriendCard({ onSendRequest }: AddFriendCardProps): Re
     };
 
     return (
-        <div className={styles.addFriendCard}>
-            <div className={styles.addFriendHeader}>
-                <h3 className={styles.addFriendTitle}>Add a Friend</h3>
-                <p className={styles.addFriendSubtitle}>
-                    You can add friends on Ember using their unique username.
-                </p>
-            </div>
-
-            {/* Input form with Apple capsule input and primary terracotta button */}
-            <form className={styles.addFriendForm} onSubmit={handleSubmit}>
-                <input
-                    type="text"
-                    className={styles.addFriendInput}
-                    placeholder="Enter username (e.g. alex_rivera)"
-                    value={targetUsername}
-                    onChange={(e) => {
-                        setTargetUsername(e.target.value);
-                        setFeedback(null); // hides the old message once the user starts typing a new name
-                    }}
-                    maxLength={32} // matches the longest username the server allows
-                />
+        <form className={styles.addForm} onSubmit={handleSubmit}>
+            {/* htmlFor ties the label to the input, so clicking it focuses the field and screen readers announce it */}
+            <label htmlFor="add-friend-username" className={styles.addLabel}>
+                Add a friend
+            </label>
+            <div className={styles.addRow}>
+                <div className={styles.field}>
+                    <input
+                        id="add-friend-username"
+                        type="text"
+                        placeholder="their username"
+                        autoComplete="off"
+                        spellCheck={false}
+                        value={targetUsername}
+                        onChange={(e) => {
+                            setTargetUsername(e.target.value);
+                            setFeedback(null); // hides the old message once the user starts typing a new name
+                        }}
+                        maxLength={32} // matches the longest username the server allows
+                    />
+                </div>
                 <button
+                    ref={buttonRef}
                     type="submit"
-                    className={styles.sendRequestBtn}
+                    className={styles.primaryBtn}
                     disabled={!targetUsername.trim() || isSending}
                 >
-                    {isSending ? 'Sending...' : 'Send Request'}
+                    {isSending ? 'Sending...' : 'Send request'}
                 </button>
-            </form>
+            </div>
 
-            {/* Inline result text, role status makes screen readers announce it */}
-            {feedback && (
-                <span
-                    role="status"
-                    className={`${styles.feedbackText} ${feedback.type === 'error' ? styles.feedbackTextError : ''}`}
-                >
-                    {feedback.text}
-                </span>
-            )}
-        </div>
+            {/* Result text, role status makes screen readers announce it. The line is always there so the layout does not jump */}
+            <p
+                role="status"
+                className={`${styles.feedbackText} ${feedback?.type === 'error' ? styles.feedbackError : ''} ${feedback?.type === 'success' ? styles.feedbackSuccess : ''}`}
+            >
+                {feedback?.text ?? ''}
+            </p>
+        </form>
     );
 }
