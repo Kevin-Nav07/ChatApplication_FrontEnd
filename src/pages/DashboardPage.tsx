@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import styles from './styles/DashboardPage.module.css';
 import FriendsView from '../features/friends/components/FriendsView';
 import HearthProvider from '../components/hearth/HearthProvider';
-
+import type { Room } from '../models/Room';
+import { getRooms } from '../services/roomService';
+import { AppError } from '../models/AppError';
 // Type defining the active primary navigation mode in the left rail
 type NavTab = 'messages' | 'friends' | 'settings';
 
@@ -14,13 +16,43 @@ type MessageFilter = 'all' | 'unread';
 export default function DashboardPage(): React.JSX.Element {
     // Tracks which tab is active in the left navigation rail
     const [activeTab, setActiveTab] = useState<NavTab>('messages');
-
+    const [error, setErrorMessage] = useState<string | null>(null);
+    const [rooms, setRooms] = useState<Room[]>([]);
+    const [selectedRoom, setSelectedRoom] = useState<Room | null>(null);
     // Tracks whether the user is filtering by all conversations or unread only
     const [filter, setFilter] = useState<MessageFilter>('all');
 
     // Holds the text currently typed into the bottom message input dock
     const [draftMessage, setDraftMessage] = useState<string>('');
 
+
+    // Loads the rooms from the backend when the dashboard first mounts
+    useEffect(() => {
+
+
+        const getRoomsFN = async () => {
+            try {
+                const rooms: Room[] = await getRooms();
+                if (rooms.length >= 1) {
+                    setSelectedRoom(rooms[0]);
+                }
+                setRooms(rooms);
+            }
+            catch (error: unknown) {
+                if (error instanceof AppError) {
+                    setErrorMessage(error?.message);
+                }
+                else {
+                    setErrorMessage("unknown error")
+                }
+
+            }
+        }
+        getRoomsFN();
+
+
+
+    }, [])
     return (
         <HearthProvider>
             <div className={styles.dashboardContainer}>
