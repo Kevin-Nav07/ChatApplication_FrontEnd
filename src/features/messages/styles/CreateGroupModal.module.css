@@ -1,0 +1,246 @@
+/* Backdrop dark overlay covering the entire viewport */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    background-color: rgba(6, 5, 4, 0.78);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Modal window container card */
+.modalCard {
+    width: 480px;
+    max-width: 100%;
+    background-color: #171310;
+    border: 1px solid rgba(214, 198, 180, 0.18);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(229, 117, 61, 0.15);
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(12px) scale(0.98); opacity: 0; }
+    to { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Modal header with title and close button */
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text, #f0eae1);
+    margin: 0;
+}
+
+.closeBtn {
+    background: transparent;
+    border: none;
+    color: var(--muted, #9c8e82);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.15s, background-color 0.15s;
+}
+
+.closeBtn:hover {
+    color: var(--text, #f0eae1);
+    background-color: rgba(214, 198, 180, 0.08);
+}
+
+/* Form input group */
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted, #9c8e82);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.textInput {
+    height: 40px;
+    background-color: rgba(9, 7, 5, 0.7);
+    border: 1px solid rgba(214, 198, 180, 0.2);
+    border-radius: 8px;
+    padding: 0 14px;
+    color: var(--text, #f0eae1);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s, background-color 0.15s;
+}
+
+.textInput:focus {
+    border-color: var(--accent, #e5753d);
+    background-color: rgba(9, 7, 5, 0.9);
+}
+
+/* Scrollable container for friends */
+.friendsList {
+    max-height: 220px;
+    overflow-y: auto;
+    background-color: rgba(9, 7, 5, 0.5);
+    border: 1px solid rgba(214, 198, 180, 0.14);
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Individual selectable friend row */
+.friendRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s;
+}
+
+.friendRow:hover {
+    background-color: rgba(214, 198, 180, 0.07);
+}
+
+.friendRowSelected {
+    background-color: rgba(229, 117, 61, 0.18);
+}
+
+.friendRowSelected:hover {
+    background-color: rgba(229, 117, 61, 0.24);
+}
+
+.friendLeft {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.avatarMini {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background-color: #2b231d;
+    color: var(--accent, #e5753d);
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.friendName {
+    font-size: 14px;
+    color: var(--text, #f0eae1);
+}
+
+/* Checkbox indicator */
+.checkboxBox {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid rgba(214, 198, 180, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s, border-color 0.15s;
+}
+
+.checkboxChecked {
+    background-color: var(--accent, #e5753d);
+    border-color: var(--accent, #e5753d);
+    color: #fff;
+}
+
+/* Error message banner */
+.errorMessage {
+    color: #ff7070;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* Bottom action buttons row */
+.actionsRow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.cancelBtn {
+    height: 36px;
+    padding: 0 16px;
+    background: transparent;
+    border: 1px solid rgba(214, 198, 180, 0.2);
+    border-radius: var(--radius-pill, 999px);
+    color: var(--muted, #9c8e82);
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.15s, border-color 0.15s;
+}
+
+.cancelBtn:hover {
+    color: var(--text, #f0eae1);
+    border-color: rgba(214, 198, 180, 0.4);
+}
+
+.submitBtn {
+    height: 36px;
+    padding: 0 20px;
+    background-color: var(--accent, #e5753d);
+    border: none;
+    border-radius: var(--radius-pill, 999px);
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: filter 0.15s, transform 0.1s;
+}
+
+.submitBtn:hover {
+    filter: brightness(1.1);
+}
+
+.submitBtn:active {
+    transform: scale(0.97);
+}
+
+.submitBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+    transform: none;
+}
+

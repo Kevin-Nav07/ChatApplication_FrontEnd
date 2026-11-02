@@ -1,0 +1,126 @@
+/* Transparent backdrop covering the screen to detect clicks outside the menu */
+.backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 45;
+    background: transparent;
+    cursor: default;
+}
+
+/* Floating popover card anchored beside the navigation rail's avatar button */
+.menuCard {
+    position: fixed;
+    left: 80px; /* offset to clear the 72px navigation rail */
+    bottom: 16px; /* aligns near the bottom where the avatar button sits */
+    z-index: 50;
+    width: 240px;
+    background-color: rgba(22, 18, 15, 0.95); /* dark charcoal panel matching the hearth theme */
+    backdrop-filter: blur(12px); /* softens particles moving behind the menu */
+    border: 1px solid rgba(214, 198, 180, 0.15); /* warm parchment edge line */
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6), 0 0 1px rgba(255, 140, 60, 0.2);
+    animation: popIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Quick subtle entrance animation */
+@keyframes popIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Top section displaying avatar badge, username, and email */
+.userInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Circular badge showing the user's initial */
+.avatarBadge {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: var(--char-2, #211b16);
+    border: 1px solid rgba(229, 117, 61, 0.4); /* subtle ember accent border */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #f0eae1);
+    flex-shrink: 0;
+}
+
+/* Container for textual user details */
+.userMeta {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Main username display */
+.username {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text, #f0eae1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Secondary user email display */
+.email {
+    font-size: 11px;
+    color: var(--faint, #a89f91);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Divider separating user identity from action buttons */
+.divider {
+    height: 1px;
+    background-color: rgba(214, 198, 180, 0.1);
+    margin: 0 -4px;
+}
+
+/* Action button for logging out */
+.logoutButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text, #f0eae1);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Button hover feedback with warm ember accent */
+.logoutButton:hover {
+    background-color: rgba(229, 117, 61, 0.12); /* transparent ember tint */
+    color: var(--accent, #e5753d); /* highlights text in ember orange */
+}
+
+/* Button press feedback */
+.logoutButton:active {
+    transform: scale(0.98);
+}
+

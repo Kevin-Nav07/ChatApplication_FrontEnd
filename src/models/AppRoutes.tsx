@@ -5,6 +5,7 @@ import AuthPage from "../pages/AuthPage";
 import Login from "../features/auth/Login";
 import Signup from "../features/auth/Signup";
 import DashboardPage from "../pages/DashboardPage";
+import { UserContextProvider } from "../features/auth/context/UserContext";
 
 //creates a dataRouter which is a routing list or map
 const routeList: DataRouter = createBrowserRouter([
@@ -32,7 +33,11 @@ const routeList: DataRouter = createBrowserRouter([
             },
             {
                 path: "dashboard", // Main authenticated dashboard destination
-                Component: DashboardPage
+                element: (
+                    <UserContextProvider>
+                        <DashboardPage />
+                    </UserContextProvider>
+                )
             }
 
         ]

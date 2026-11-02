@@ -6,11 +6,52 @@
 
 **The idea:** the chat UI already exists with fake data. I replace the fake data with real logic, one piece at a time, while AI handles the backend and the UI.
 
+## Instructions for AI coding agents
+
+Read this section first. It applies to any AI tool working on this project.
+
+**Where things are**
+
+- **Frontend (this repo):** React 19, TypeScript and Vite.
+- **Backend:** `../../Chat-Application` from this repo's root. It uses Node.js with `pg`, `redis` and `ws`, on a custom router with no Express.
+
+**Do not write code for my hand-coded pieces**
+
+These are mine, because the point of this project is to learn by building them:
+
+- Loading and selecting rooms
+- Logged-in user Context and logout logic
+- The socket hook
+- Message state, including history
+- Room previews, room order and unread dot logic
+- Connecting the "Message" button and group creation
+- Reconnect logic
+- Reducer tests
+
+Give no code for these unless I explicitly hand that piece over. I propose the design first. If I'm stuck, answer conceptually and without code. You can review my code once it runs.
+
+**Your jobs**
+
+- The backend checklist and the UI work below.
+- Build UI as display components that receive data and callbacks as props. They can hold small things like an input's text, but never messages or connection state.
+
+**How to work with me**
+
+I'm a junior developer, and I'm learning from this work.
+
+- Before running commands, editing files or installing anything, explain what you'll do and wait for my approval.
+- Never commit or push unless I ask. Never print or copy the contents of `.env` files.
+- Ask me about the open decisions below before starting any work that depends on them.
+- After each change, explain how it works and why, and say exactly what you tested and what you didn't.
+- Comment each function above its definition, and explain non-obvious lines beside them in plain language. Don't use emojis or em dashes in comments.
+- Match the style of the surrounding code.
+
 ## Before I start
 
-- [ ] Commit my Dashboard work
-- [ ] Tell AI "go" so it can start the backend work and split the Dashboard into display components
-- [ ] Review the message format (see "Backend work for AI")
+- [x] Commit my Dashboard work
+- [ ] Answer the open decisions (see "Backend work for AI")
+- [ ] Review the draft message format
+- [ ] Tell AI to start the backend work and split the Dashboard into display components
 
 ## The order
 
@@ -61,18 +102,100 @@ Only start row 7 if the socket hook worked by Nov 15 and message state worked by
 
 I review all of this. I must be able to explain every change to `WebsocketManager` and `WebsocketServer` before accepting it.
 
-- [ ] Message format
-- [ ] Save messages to the database
-- [ ] History endpoint with cursor pagination
+### Open decisions
+
+I haven't decided these yet. Ask me before starting work that depends on them.
+
+1. **How messages get sent.** The draft below assumes option A.
+   - **A (recommended):** over the socket, and the server saves, then delivers to everyone. It builds on the existing code, but needs its own error messages, and login isn't rechecked while a socket stays open.
+   - **B:** over HTTP POST, with the socket only delivering. Errors and expired logins are easier, but there are two paths to understand and the send code gets rewritten.
+   - **C:** over the socket, delivering first and saving afterward. It's the fastest, but a message can be seen and then lost in a crash.
+2. **Binary messages.** Remove msgpack support and use JSON only? Recommended: yes, because the frontend only uses JSON. The downside is slightly larger messages.
+3. **Schema check.** Does a `messages` table already exist? Neither repo has any `CREATE TABLE` statements, so this needs a read-only query against the database in `.env`. Get my approval before running it.
+
+### Draft message format
+
+This is a draft until I've reviewed it. Fields use snake_case to match the backend.
+
+**Client sends to server:**
+
+```json
+{
+  "type": "message:send",
+  "room_id": 12,
+  "client_message_id": "a1b2c3",
+  "content": "hey"
+}
+```
+
+**Server sends to everyone in the room, including the sender:**
+
+```json
+{
+  "type": "message:new",
+  "client_message_id": "a1b2c3",
+  "message": {
+    "id": 481,
+    "room_id": 12,
+    "sender_id": 7,
+    "sender_username": "kevin",
+    "content": "hey",
+    "created_at": "2026-11-01T18:22:04.123Z"
+  }
+}
+```
+
+**If sending fails, server sends to the sender only:**
+
+```json
+{
+  "type": "message:error",
+  "room_id": 12,
+  "client_message_id": "a1b2c3",
+  "code": "NOT_A_MEMBER",
+  "error": "You are not a member of this room"
+}
+```
+
+The codes are `INVALID_MESSAGE`, `NOT_A_MEMBER` and `SERVER_ERROR`.
+
+**When a user is added to a new room, server sends to that user:**
+
+```json
+{
+  "type": "room:new",
+  "room": { "id": 15, "name": "Example", "room_type": "direct", "created_at": "2026-11-01T18:22:04.123Z" }
+}
+```
+
+**REST endpoints use the same message shape:**
+
+- `GET /rooms/:id/messages?limit=30&cursor=...` returns `{ "messages": [...], "newCursor": "..." }`, newest first. `newCursor` is `null` on the last page, like the existing rooms endpoint. Non-members get a 403.
+- `GET /rooms` adds `last_message` to each room, which is `null` for an empty room.
+
+**Rules:**
+
+- Content is trimmed and must be 1-4000 characters.
+- `client_message_id` is generated by the browser and never saved. It leaves room to add sending -> sent later without changing the format.
+
+### Checklist
+
+- [ ] Finalize the message format after my review
+- [ ] Add a schema file to the backend that can create all the tables on a fresh database
+- [ ] Set up a separate test database (`tests/api.test.js` currently uses the same `.env` connection as the app)
+- [ ] Save messages to the database before delivering them
+- [ ] History endpoint with cursor pagination, reusing `helpers/Cursor.js`
 - [ ] Add message ID, sender and timestamp to delivered messages
-- [ ] Fix `deleteUser` removing the user's room list when one socket closes (React `StrictMode` can trigger this)
-- [ ] Attach socket message listeners before the database calls, so early messages aren't dropped
-- [ ] Add newly created rooms to live connections
+- [ ] Deliver messages to the sender too (`fromRedisTransmitMessage` in `WebsocketManager.js` currently skips them)
+- [ ] Fix `deleteUser` in `WebsocketManager.js` removing the user's room list when one socket closes (React `StrictMode` can trigger this)
+- [ ] Attach socket listeners before the database calls in `WebsocketServer.js`, so early messages aren't dropped
+- [ ] Remove the check in `WebsocketServer.js` that closes the socket when a message is just the word "close"
+- [ ] Add newly created rooms to live connections and send `room:new`. This has to work across servers, and `socketManager` is currently private to `createWebSocketServer`, so propose an approach to me first
 - [ ] Include each room's last message in the rooms response
 - [ ] Return display names for DMs
 - [ ] Prevent duplicate DMs
-- [ ] Add WebSocket tests
-- [ ] Set up Vitest on the frontend
+- [ ] Add WebSocket tests, starting with tests that reproduce the bugs above
+- [ ] Set up Vitest on the frontend (I write the reducer tests myself)
 
 None of the backend bugs above have been confirmed by running the code. They come from reading it, so the tests need to confirm them.
 
@@ -83,9 +206,16 @@ None of the backend bugs above have been confirmed by running the code. They com
 3. How do senders see their own message?
 4. What does a failure look like?
 
+## UI work for AI
+
+- [ ] Split `src/pages/DashboardPage.tsx` into display components, such as a room list, chat header, message list and message input. Keep the current look.
+- [ ] Keep my existing state and fetch code in `DashboardPage.tsx`, and don't move logic into the new components.
+- [ ] Build each later screen when its row in "The order" comes up: message bubbles, loading display, scroll position, preview and dot styling, new-chat screens, and connection status.
+- [ ] Don't change the fire effect or redesign anything until the chat works.
+
 ## Design notes for the hard parts
 
-These are starting points. I still propose my own design first.
+These are starting points. I still propose my own design first. AI agents shouldn't use these notes to write my pieces.
 
 ### Socket lifecycle
 

@@ -33,3 +33,12 @@ export async function login(credentials: LoginForm): Promise<AxiosResponse> {
     const response: AxiosResponse = await api.post("/auth/login", credentials);
     return response; // Returns the server response containing authentication tokens or user info
 }
+
+export async function getUserMe(): Promise<AxiosResponse> {
+    const response: AxiosResponse = await api.get("/users/me");
+    return response;
+}
+
+export async function logout(): Promise<void> {
+    await api.post("/auth/logout");
+}
