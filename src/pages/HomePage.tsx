@@ -1,177 +1,78 @@
-import React, { useEffect, useRef } from "react";
-import styles from "./styles/HomePage.module.css";
-import fireEmblem from "../assets/fireEmblem.png";
-import NavBar from "../components/NavBar";
+import React from 'react';
+import { Link } from 'react-router-dom';
+import styles from './styles/HomePage.module.css';
+import NavBar from '../components/NavBar';
 
-// Living Canvas-based Campfire Ember simulation
-const CampfireCanvas = () => {
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
+// One line of the conversation shown in the hero. heat runs from 0 (just arrived) to 3 (cooled to charcoal)
+interface PreviewLine {
+    side: 'theirs' | 'mine';
+    who: string;
+    text: string;
+    time: string;
+    heat: 0 | 1 | 2 | 3;
+}
 
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        if (!canvas) return;
-        const ctx = canvas.getContext("2d");
-        if (!ctx) return;
+// A short exchange, oldest first, hung on the spine the way the real Messages screen hangs it
+const PREVIEW: PreviewLine[] = [
+    { side: 'theirs', who: 'theo.b', text: 'anyone still up for saturday?', time: '21:02', heat: 3 },
+    { side: 'mine', who: 'You', text: "I'm in. I'll bring the kettle", time: '21:14', heat: 2 },
+    { side: 'theirs', who: 'mira', text: 'save me a seat by the fire', time: '21:31', heat: 1 },
+    { side: 'mine', who: 'You', text: 'already saved', time: 'now', heat: 0 },
+];
 
-        let animationFrameId: number;
-        let width = (canvas.width = window.innerWidth);
-        let height = (canvas.height = window.innerHeight);
-
-        const handleResize = () => {
-            if (!canvas) return;
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
-        };
-
-        window.addEventListener("resize", handleResize);
-
-        interface EmberParticle {
-            x: number;
-            y: number;
-            radius: number;
-            color: string;
-            alpha: number;
-            decay: number;
-            vx: number;
-            vy: number;
-            oscillationSpeed: number;
-            oscillationDistance: number;
-            t: number;
-        }
-
-        const embers: EmberParticle[] = [];
-        const maxEmbers = 60;
-        const colors = [
-            "229, 117, 61", // #e5753d
-            "215, 130, 75",
-            "178, 69, 26",  // #b2451a
-            "240, 190, 140",
-            "118, 34, 22",  // #762216
-        ];
-
-        const createEmber = (initialSpawn = false): EmberParticle => {
-            const originX = width * 0.5 + (Math.random() - 0.5) * (width * 0.55);
-            const originY = height + Math.random() * 20;
-
-            return {
-                x: initialSpawn ? Math.random() * width : originX,
-                y: initialSpawn ? Math.random() * height : originY,
-                radius: Math.random() * 2.2 + 0.8,
-                color: colors[Math.floor(Math.random() * colors.length)],
-                alpha: Math.random() * 0.75 + 0.15,
-                decay: Math.random() * 0.0025 + 0.0015,
-                vx: (Math.random() - 0.5) * 0.6,
-                vy: -(Math.random() * 1.3 + 0.6),
-                oscillationSpeed: Math.random() * 0.025 + 0.01,
-                oscillationDistance: Math.random() * 1.2 + 0.4,
-                t: Math.random() * 100,
-            };
-        };
-
-        for (let i = 0; i < maxEmbers; i++) {
-            embers.push(createEmber(true));
-        }
-
-        const render = () => {
-            ctx.clearRect(0, 0, width, height);
-
-            // Natural warm hearth gradient at the base
-            const gradient = ctx.createRadialGradient(
-                width * 0.5,
-                height * 0.95,
-                10,
-                width * 0.5,
-                height * 0.8,
-                width * 0.6
-            );
-            gradient.addColorStop(0, "rgba(229, 117, 61, 0.16)");
-            gradient.addColorStop(0.5, "rgba(118, 34, 22, 0.05)");
-            gradient.addColorStop(1, "rgba(26, 25, 11, 0)");
-
-            ctx.fillStyle = gradient;
-            ctx.fillRect(0, 0, width, height);
-
-            embers.forEach((ember, index) => {
-                ember.t += ember.oscillationSpeed;
-                ember.x += ember.vx + Math.sin(ember.t) * ember.oscillationDistance * 0.35;
-                ember.y += ember.vy;
-                ember.alpha -= ember.decay;
-
-                if (ember.alpha <= 0 || ember.y < -10) {
-                    embers[index] = createEmber(false);
-                    return;
-                }
-
-                ctx.save();
-                ctx.beginPath();
-                ctx.arc(ember.x, ember.y, ember.radius, 0, Math.PI * 2);
-                ctx.fillStyle = `rgba(${ember.color}, ${ember.alpha})`;
-                ctx.fill();
-                ctx.restore();
-            });
-
-            animationFrameId = requestAnimationFrame(render);
-        };
-
-        render();
-
-        return () => {
-            window.removeEventListener("resize", handleResize);
-            cancelAnimationFrame(animationFrameId);
-        };
-    }, []);
-
-    return <canvas ref={canvasRef} className={styles.ambientCanvas} />;
-};
-
+// The landing page. The fire from HearthProvider burns at the foot of the hero, and the product's own
+// conversation spine rises out of it, so the first thing a visitor sees is what Ember actually looks like
 export default function HomePage(): React.JSX.Element {
     return (
-        <>
+        <div className={styles.page}>
             <NavBar />
-            <div className={styles.heroViewport}>
-                {/* Ambient Campfire Simulation */}
-                <CampfireCanvas />
-                <div className={styles.forestVignette} />
 
-
-
-                {/* Main Center Composition */}
-                <main className={styles.heroShowcase}>
-                    <div className={styles.heroTextBlock}>
-                        <h1 className={styles.mainTitle}>ember</h1>
-
-                        <p className={styles.heroSubheading}>
-                            A warm space for real-time conversations. Connect with friends and communities around the hearth.
-                        </p>
-
-                        <div className={styles.heroActionRow}>
-                            <button className={styles.mainCtaButton}>
-                                <span>Start chatting</span>
-                                <span className={styles.ctaArrow}>&rarr;</span>
-                            </button>
-                        </div>
+            <main className={styles.hero}>
+                {/* The words: what Ember is, for whom, and the way in */}
+                <div className={styles.copy}>
+                    <p className={styles.eyebrow}>Real-time messaging</p>
+                    <h1 className={styles.title}>Chat for the people around your fire.</h1>
+                    <p className={styles.lede}>
+                        Direct messages and group rooms with your friends, delivered the moment they are sent.
+                        New messages arrive hot and cool to charcoal over the hour, so you can see at a glance where a conversation is alive.
+                    </p>
+                    <div className={styles.actions}>
+                        <Link to="/auth/signup" className={styles.plate}>Create an account</Link>
+                        <Link to="/auth/login" className={styles.textLink}>I already have one</Link>
                     </div>
+                </div>
 
-                    {/* Right Side: Clean Flame Emblem without artificial halos */}
-                    <div className={styles.heroVisualBlock}>
-                        <div className={styles.emblemWrapper}>
-                            <img
-                                src={fireEmblem}
-                                alt="Ember Emblem"
-                                className={styles.fireEmblemImg}
-                                onError={(e) => {
-                                    (e.target as HTMLElement).style.display = "none";
-                                }}
-                            />
-                        </div>
+                {/* The product itself: a conversation hanging on the spine, rising out of the fire.
+                    It is a picture of the interface, so screen readers skip it; the words beside it say what it shows */}
+                <div className={styles.scene} aria-hidden="true">
+                    <span className={styles.spine} />
+                    <div className={styles.thread}>
+                        {PREVIEW.map((line, index) => (
+                            <div
+                                key={line.time}
+                                className={`${styles.row} ${line.side === 'mine' ? styles.mine : styles.theirs} ${styles[`heat${line.heat}`]}`}
+                                style={{ animationDelay: `${1.3 + index * 0.18}s` }} // the older lines settle in one after another
+                            >
+                                <div className={styles.body}>
+                                    <span className={styles.who}>{line.who}</span>
+                                    <span className={styles.text}>{line.text}</span>
+                                </div>
+                                <span className={styles.tick} />
+                                <span className={styles.when}>{line.time}</span>
+                                {line.heat === 0 && <span className={styles.streak} />}
+                            </div>
+                        ))}
                     </div>
-                </main>
+                    {/* The fire burns in the centre of this box, drawn by the hearth canvas behind the page */}
+                    <div className={styles.fireSpot} data-hearth-fire="" data-hearth-size="620" />
+                </div>
+            </main>
 
-                {/* Minimalist Bottom Bar */}
-                <footer className={styles.bottomBar}>
-                    <span className={styles.bottomMeta}>around the hearth • real-time messaging</span>
-                </footer>
-            </div>
-        </>
+            <footer className={styles.footer}>
+                <span>Direct messages</span>
+                <span>Group rooms</span>
+                <span>Friends around the fire</span>
+            </footer>
+        </div>
     );
 }

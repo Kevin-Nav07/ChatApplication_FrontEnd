@@ -1,0 +1,63 @@
+/* The fire's sound switch: quiet and grey when off, warm when the fire can be heard */
+.toggle {
+    display: inline-flex;
+    align-items: center;
+    border: none;
+    background: none;
+    color: var(--faint);
+    font: inherit;
+    cursor: pointer;
+    transition: color 0.2s, transform 0.15s var(--ease);
+}
+
+.toggle:hover {
+    color: var(--muted);
+}
+
+.toggle:active {
+    transform: scale(0.96);
+}
+
+.on,
+.on:hover {
+    color: var(--ember-hot);
+}
+
+/* In the rail: icon above the label, the same size as the nav buttons */
+.rail {
+    flex-direction: column;
+    gap: 4px;
+    width: 62px;
+    min-height: 48px;
+    justify-content: center;
+}
+
+/* In a top bar: icon beside the label */
+.inline {
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 6px;
+}
+
+/* The label in small capitals, like every other label in the app */
+.label {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.inline .label {
+    font-size: 10.5px;
+    letter-spacing: 0.16em;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toggle {
+        transition: none;
+    }
+
+    .toggle:active {
+        transform: none;
+    }
+}

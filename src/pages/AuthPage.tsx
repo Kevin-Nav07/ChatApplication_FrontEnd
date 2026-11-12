@@ -1,24 +1,26 @@
 import React from 'react';
-import { Outlet } from 'react-router-dom';
+import { Link, Outlet } from 'react-router-dom';
 import styles from './styles/AuthPage.module.css';
 
-
+// The layout around the login and signup forms. The shared fire glides over from the landing page and burns
+// in the left pane; the form for the current route renders in the right pane through <Outlet />
 export default function AuthPage(): React.JSX.Element {
     return (
         <div className={styles.authLayout}>
-            {/* Left Side: Minimalist atmospheric visual */}
             <div className={styles.visualPane}>
+                <Link to="/" className={styles.brand}>ember</Link>
+
+                {/* The fire burns in the centre of this box, drawn by the hearth canvas behind the page */}
+                <div className={styles.fireSpot} data-hearth-fire="" data-hearth-size="560" aria-hidden="true" />
+
                 <div className={styles.visualContent}>
-                    <div className={styles.watermark}>e.</div>
-                    <h2 className={styles.brandTitle}>Keep the fire alive.</h2>
-                    <p className={styles.brandTagline}>A warm space for real-time conversations.</p>
+                    <p className={styles.brandTitle}>Keep the fire alive.</p>
+                    <p className={styles.brandTagline}>Real-time messaging with your friends</p>
                 </div>
             </div>
 
-            {/* Right Side: The interactive form area */}
             <div className={styles.formPane}>
                 <div className={styles.formContainer}>
-                    {/* The form components will render directly here */}
                     <Outlet />
                 </div>
             </div>

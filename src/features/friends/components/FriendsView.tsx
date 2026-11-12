@@ -193,8 +193,7 @@ export default function FriendsView({ onDirectMessage }: FriendsViewProps): Reac
     };
 
     return (
-        // data-hearth-calm keeps drifting embers out of the room; the fire and the sparks from actions still burn
-        <div className={styles.friendsContainer} data-hearth-calm="">
+        <div className={styles.friendsContainer}>
             {/* ----------------------------------------------------------------
                 Left: the stage, with the title, the add friend form and the circle
                ---------------------------------------------------------------- */}

@@ -6,35 +6,8 @@
    and firelight catches the bottom edge of things because the fire is below.
    ========================================================================== */
 
-/* Full viewport layout. The design tokens live here so every screen inside the dashboard can use them */
+/* Full viewport layout. The design tokens it uses live on :root in index.css, shared with every page */
 .dashboardContainer {
-    /* Charcoal, from the room up */
-    --char-0: #0b0907;
-    --char-1: rgba(22, 18, 15, 0.86);
-    --char-2: #211c17;
-    --char-3: #2b251f;
-
-    /* Text in three tiers, each passes 4.5:1 contrast on charcoal */
-    --text: #eeeae5;
-    --muted: #b5ab9f;
-    --faint: #958b80;
-
-    /* Colour */
-    --accent: var(--color-primary, #e5753d); /* the brand ember */
-    --ember-hot: #ffb072; /* for words that need attention */
-    --negative: #ec7262;
-    --negative-bg: rgba(236, 114, 98, 0.14);
-
-    /* Type: the warm serif for headings, the brand face for everything else */
-    --serif: 'Fraunces', Georgia, serif;
-    --font: var(--font-body);
-
-    /* Shape and motion */
-    --radius-card: 18px;
-    --radius-row: 14px;
-    --radius-pill: 999px;
-    --ease: cubic-bezier(0.22, 0.9, 0.24, 1); /* starts fast and settles gently, like a damped spring */
-
     position: relative;
     z-index: 1; /* sits above the hearth's background canvas and below its spark canvas */
     width: 100vw;
@@ -153,9 +126,14 @@
     text-transform: uppercase;
 }
 
-/* The signed in user's avatar, pushed to the bottom of the rail: a charcoal lump like every other person in the app */
-.avatarRing {
+/* The sound switch takes the free space above it, which pushes it and the avatar to the bottom of the rail */
+.railSound {
     margin-top: auto;
+    margin-bottom: 12px;
+}
+
+/* The signed in user's avatar, at the bottom of the rail: a charcoal lump like every other person in the app */
+.avatarRing {
     width: 38px;
     height: 38px;
     border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%;
@@ -193,13 +171,13 @@
 
 /* The same masthead type as Messages and Friends */
 .settingsTitle {
+    composes: lit from '../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     font-family: var(--serif);
     font-size: 56px;
     font-weight: 480;
     line-height: 1;
     letter-spacing: -0.03em;
     font-variation-settings: 'opsz' 144;
-    color: var(--text);
     margin: 0;
 }
 
@@ -245,7 +223,8 @@
     }
 
     .brandIcon,
-    .avatarRing {
+    .avatarRing,
+    .railSound {
         display: none;
     }
 

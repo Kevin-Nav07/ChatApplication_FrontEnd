@@ -1,123 +1,121 @@
-/* Modal backdrop with subtle blur */
+/* The room dims behind the card */
 .modalBackdrop {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(4px);
+    z-index: 100;
     display: flex;
-    justify-content: center;
     align-items: center;
-    z-index: 1000;
-    padding: 1.5rem;
-    box-sizing: border-box;
-    animation: fadeIn 0.2s ease-out forwards;
+    justify-content: center;
+    padding: 16px;
+    background-color: rgba(6, 5, 4, 0.72);
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
 }
 
 @keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
-/* Centered modal card pop-in animation */
 @keyframes popIn {
-    from {
-        opacity: 0;
-        transform: scale(0.95) translateY(8px);
-    }
-
-    to {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-    }
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to { opacity: 1; transform: none; }
 }
 
+/* A charcoal card with a rough drawn edge and firelight on its lower edge, like every panel in the app */
 .modalCard {
-    width: 100%;
-    max-width: 330px;
-    background-color: #14130f;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 1px 3px rgba(0, 0, 0, 0.3);
-    overflow: hidden;
+    composes: rough from '../../components/hearth/hearth.module.css';
+    width: 360px;
+    max-width: 100%;
     display: flex;
     flex-direction: column;
-    text-align: center;
-    animation: popIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    gap: 22px;
+    padding: 28px 26px 22px;
+    border-radius: 20px;
+    background-color: rgba(20, 16, 13, 0.98);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65), inset 0 -1px 0 rgba(255, 140, 60, calc(0.25 * var(--flick, 1)));
+    animation: popIn 0.4s var(--ease, ease-out);
 }
 
 .bodyContent {
-    padding: 2rem 1.5rem 1.75rem;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
+    gap: 10px;
 }
 
-/* Large circular outline icon matching the reference image */
+/* The mark: a charcoal lump holding a tick or a cross, ember for success and red for an error. No glow around it */
 .iconCircle {
-    width: 68px;
-    height: 68px;
-    border-radius: 50%;
-    border: 2px solid;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 1.25rem;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%;
+    background-color: var(--char-2);
+    box-shadow: inset 0 0 0 1.3px currentColor, inset 0 -4px 8px rgba(0, 0, 0, 0.35);
 }
 
 .successIcon {
-    border-color: #10b981;
-    color: #10b981;
+    color: var(--ember-hot);
 }
 
 .errorIcon {
-    border-color: #f87171;
-    color: #f87171;
+    color: var(--negative);
 }
 
 .iconSvg {
-    width: 32px;
-    height: 32px;
+    width: 20px;
+    height: 20px;
 }
 
+/* The title in the serif's italic, the same voice as names in notifications */
 .title {
-    font-size: 1.35rem;
-    font-weight: 700;
-    color: #ffffff;
-    margin: 0 0 0.5rem 0;
-    letter-spacing: -0.02em;
+    margin: 4px 0 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 24px;
+    letter-spacing: -0.01em;
+    color: var(--text);
 }
 
 .message {
-    font-size: 0.88rem;
-    color: rgba(255, 255, 255, 0.6);
     margin: 0;
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--muted);
 }
 
-/* Bottom full-width action button matching the reference */
+/* The ember plate */
 .confirmButton {
-    width: 100%;
-    padding: 1.1rem;
+    height: 46px;
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    background-color: transparent;
-    color: #ffffff;
-    font-size: 0.95rem;
+    border-radius: 12px;
+    background-color: var(--accent);
+    color: #1d0b03;
+    font: inherit;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s ease, color 0.15s ease;
+    transition: background-color 0.25s, transform 0.15s var(--ease, ease-out);
 }
 
 .confirmButton:hover {
-    background-color: rgba(255, 255, 255, 0.05);
-    color: var(--color-primary, #e5753d);
+    background-color: #ee8450;
+    transform: translateY(-1px);
 }
 
 .confirmButton:active {
-    background-color: rgba(255, 255, 255, 0.08);
+    transform: scale(0.98);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modalBackdrop,
+    .modalCard {
+        animation: none;
+    }
+
+    .confirmButton {
+        transition: none;
+    }
 }

@@ -174,8 +174,7 @@ export default function MessagesView({ initialRoomId, onSelectedRoomChange }: Me
     const toastRoom = state.toast ? state.rooms.find((room) => room.id === state.toast?.roomId) : undefined;
 
     return (
-        // data-hearth-calm asks the hearth to keep this screen free of drifting embers and sparks: only the fire itself burns
-        <div className={styles.room} data-hearth-calm="">
+        <div className={styles.room}>
             {/* A failed load, dismissible so it does not stay forever */}
             {state.error && (
                 <div className={styles.errorDock}>

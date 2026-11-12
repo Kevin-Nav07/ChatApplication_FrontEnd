@@ -78,6 +78,7 @@
 }
 
 .ledgerTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     font-family: var(--serif);
     font-weight: 560;
     font-size: 34px;
@@ -516,6 +517,7 @@
 }
 
 .mastName {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     min-width: 0;
     margin: 0;
     font-family: var(--serif);
@@ -570,13 +572,13 @@
 }
 
 .quietTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     margin: 0;
     font-family: var(--serif);
     font-style: italic;
     font-weight: 400;
     font-size: 34px;
     letter-spacing: -0.015em;
-    color: var(--text);
 }
 
 .quietText {
@@ -736,12 +738,12 @@
 }
 
 .emptyTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     margin: 26px 0 0;
     font-family: var(--serif);
     font-weight: 520;
     font-size: 38px;
     letter-spacing: -0.02em;
-    color: var(--text);
 }
 
 .emptyText {

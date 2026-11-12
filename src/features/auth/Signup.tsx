@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './styles/Signup.module.css';
+import styles from './styles/AuthForm.module.css'; // shared with Login
 import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import type { SignupForm } from './types/SignupForm';
@@ -79,7 +79,7 @@ export default function Signup(): React.JSX.Element {
             {/* Header Block containing title and subtitle */}
             <div className={styles.headerBlock}>
                 <h1 className={styles.title}>Create account</h1>
-                <p className={styles.subtitle}>Join the conversation today.</p>
+                <p className={styles.subtitle}>Pull up a seat by the fire.</p>
             </div>
 
             <form className={styles.formElement} onSubmit={handleSubmit(submitHandler)}>

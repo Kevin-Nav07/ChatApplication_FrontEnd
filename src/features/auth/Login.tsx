@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import styles from './styles/Login.module.css';
+import styles from './styles/AuthForm.module.css'; // shared with Signup
 import { Form, Link, useNavigate } from 'react-router-dom';
 import { useForm, type SubmitHandler } from 'react-hook-form';
 import type { LoginForm } from './types/LoginForm';

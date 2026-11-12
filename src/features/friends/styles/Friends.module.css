@@ -51,13 +51,13 @@
 
 /* The screen's title in the warm serif, set large like the room names on the Messages screen */
 .title {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     font-family: var(--serif);
     font-weight: 480;
     font-size: 56px;
     line-height: 1;
     letter-spacing: -0.03em;
     font-variation-settings: 'opsz' 144;
-    color: var(--text);
     margin: 0;
 }
 
@@ -430,12 +430,12 @@ button.coal {
 
 /* The same size and face as the "Messages" title */
 .panelTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
     font-family: var(--serif);
     font-weight: 560;
     font-size: 34px;
     letter-spacing: -0.018em;
     font-variation-settings: 'opsz' 96;
-    color: var(--text);
     margin: 0;
 }
 
