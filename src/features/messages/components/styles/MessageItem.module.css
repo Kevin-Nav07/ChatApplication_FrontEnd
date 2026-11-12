@@ -1,76 +1,84 @@
-/* Base row container holding the bubble, author tag, and timestamp */
-.messageRow {
-    display: flex;
-    flex-direction: column;
-    max-width: 72%;
-    animation: bubbleEnter 0.14s ease-out backwards;
+/* One line of a message group: plain text, no bubble. Its colour cools over an hour (see heat.ts) */
+.line {
+    position: relative;
+    margin: 0;
+    font-size: 15.5px;
+    line-height: 1.55;
 }
 
-/* Quick subtle fade-in animation when a message bubble mounts */
-@keyframes bubbleEnter {
-    from {
-        opacity: 0;
-        transform: translateY(4px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-/* Message row aligned to the right (sent by the current authenticated user) */
-.rowMe {
-    align-self: flex-end;
-    align-items: flex-end;
-}
-
-/* Message row aligned to the left (sent by other room members) */
-.rowThem {
-    align-self: flex-start;
-    align-items: flex-start;
-}
-
-/* Author username label shown above incoming messages */
-.author {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--faint, #a89f91);
-    margin-bottom: 3px;
-    padding: 0 4px;
-}
-
-/* Base bubble box containing message text */
-.bubble {
-    padding: 9px 14px;
-    font-size: 14px;
-    line-height: 1.5;
-    word-break: break-word;
+/* The words cool from hot ember to warm charcoal white. The coolest colour still reads at well over 4.5:1 on the dark ground */
+.text {
+    display: block;
+    color: #d9d1c7;
     white-space: pre-wrap;
-    font-family: inherit;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    word-break: break-word;
+    animation: coolInk var(--cool-duration, 3600s) linear var(--cool-delay, -3600s) both;
 }
 
-/* Outgoing message bubble: warm ember glow styling */
-.bubbleMe {
-    background-color: rgba(229, 117, 61, 0.24); /* ember accent tint */
-    border: 1px solid rgba(229, 117, 61, 0.45); /* glowing border */
-    color: var(--text, #f0eae1);
-    border-radius: 16px 16px 4px 16px; /* speech bubble asymmetric bottom-right corner */
+@keyframes coolInk {
+    0% { color: #ffe9d2; text-shadow: 0 0 14px rgba(255, 140, 60, 0.45); }
+    6% { color: #ffd2a8; text-shadow: 0 0 8px rgba(255, 140, 60, 0.22); }
+    25% { color: #ecd4bf; text-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+    100% { color: #d9d1c7; text-shadow: 0 0 0 rgba(0, 0, 0, 0); }
 }
 
-/* Incoming message bubble: dark charcoal styling */
-.bubbleThem {
-    background-color: rgba(28, 23, 19, 0.94); /* dark charcoal panel matching hearth materials */
-    border: 1px solid rgba(214, 198, 180, 0.12); /* soft parchment border */
-    color: var(--text, #f0eae1);
-    border-radius: 16px 16px 16px 4px; /* speech bubble asymmetric bottom-left corner */
+/* A message that just arrived kindles in once the streak reaches it. The kindle runs on the text, not the whole line,
+   because the streak lives inside the line and a parent at opacity 0 would hide it too.
+   Two animations run together: coolInk changes the colour, kindle the opacity, position and blur */
+.fresh .text {
+    animation:
+        coolInk var(--cool-duration, 3600s) linear var(--cool-delay, -3600s) both,
+        kindle 0.7s var(--ease) 0.42s both;
 }
 
-/* Small timestamp placed below the message bubble */
-.timestamp {
-    font-size: 10px;
-    color: var(--faint, #a89f91);
-    margin-top: 3px;
-    padding: 0 4px;
+@keyframes kindle {
+    from { opacity: 0; transform: translateY(6px); filter: blur(4px); }
+    to { opacity: 1; transform: none; filter: none; }
 }
 
+/* The streak: a thin line of heat that runs up the spine from the fire to this line. It is a stroke, not a dot.
+   The spine is 28px past the inside edge of the line, half of the 56px spine column */
+.streak {
+    position: absolute;
+    top: -44px;
+    width: 2px;
+    height: 120px;
+    pointer-events: none;
+    background: linear-gradient(to top, rgba(255, 176, 114, 0), #ffb072 40%, #fff1dc 55%, rgba(255, 176, 114, 0));
+    animation: streakRise 0.62s cubic-bezier(0.3, 0.6, 0.3, 1) both;
+}
+
+.lineThem .streak {
+    right: -29px;
+}
+
+.lineMe .streak {
+    left: -29px;
+}
+
+@keyframes streakRise {
+    0% { transform: translateY(340px); opacity: 0; }
+    15% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(0); opacity: 0; }
+}
+
+/* On phones both sides share one column with the spine on the left */
+@media (max-width: 760px) {
+    .lineThem .streak,
+    .lineMe .streak {
+        left: -13px;
+        right: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .text,
+    .fresh .text {
+        animation: none;
+    }
+
+    .streak {
+        display: none;
+    }
+}

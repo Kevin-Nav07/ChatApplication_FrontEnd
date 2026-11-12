@@ -5,6 +5,8 @@ import type { Friend } from '../../friends/types/friends';
 import { getFriends } from '../../../services/friendService';
 import { createRoom } from '../../../services/roomService';
 import { AppError } from '../../../models/AppError';
+import { friendWarmth, type CSSVars } from '../../friends/utils/heat';
+import { lumpShape } from '../utils/heat';
 
 // Props contract for the CreateGroupModal component
 export interface CreateGroupModalProps {
@@ -13,7 +15,28 @@ export interface CreateGroupModalProps {
     onRoomCreated: (newRoom: Room) => void; // callback passing the created room to the parent
 }
 
-// Modal dialog allowing the user to name a room and select friends to invite
+const MAX_ARC_SEATS = 10; // more friends than this would crowd the arc, so they are listed in rows instead
+const ARC_FROM = 200; // degrees: the arc runs over the top of the fire, from lower left (200) to lower right (340)
+const ARC_TO = 340;
+const OUTER_RADIUS = 46; // percent of the arc area's width: where friends wait
+const INNER_RADIUS = 31; // where a chosen friend moves to, closer to the fire
+
+// Where one friend sits on the arc around the fire, as percentages of the arc area. Chosen friends sit on the inner arc
+function seatPosition(index: number, count: number, isChosen: boolean): CSSVars {
+    const step = count <= 1 ? 0 : (ARC_TO - ARC_FROM) / (count - 1);
+    const degrees = count <= 1 ? 270 : ARC_FROM + index * step; // 270 degrees points straight up
+    const angle = (degrees * Math.PI) / 180;
+    const radius = isChosen ? INNER_RADIUS : OUTER_RADIUS;
+    // cos and sin turn an angle into a point on a circle; the circle's centre is the fire at the bottom middle.
+    // The area is twice as wide as it is tall, so the vertical distance is doubled to keep the arc round
+    return {
+        left: `${50 + radius * Math.cos(angle)}%`,
+        top: `${92 + radius * 2 * Math.sin(angle)}%`,
+    };
+}
+
+// Modal dialog allowing the user to name a room and select friends to invite.
+// Friends wait in a half circle around a small fire; choosing one brings them into the light
 export default function CreateGroupModal({
     isOpen,
     onClose,
@@ -122,111 +145,106 @@ export default function CreateGroupModal({
     // Return nothing if modal is closed
     if (!isOpen) return null;
 
+    const useArc = friends.length > 0 && friends.length <= MAX_ARC_SEATS;
+    const chosenCount = selectedUserIds.length;
+
     return (
         <div
             className={styles.backdrop}
             onClick={handleClose} // clicking the backdrop closes the modal
-            role="dialog"
-            aria-modal="true"
         >
-            {/* Modal Card, stops click propagation so clicking inside does not close it */}
-            <div className={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-                {/* Header */}
+            {/* Modal sheet, stops click propagation so clicking inside does not close it */}
+            <div
+                className={styles.sheet}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="create-group-title"
+                onClick={(e) => e.stopPropagation()}
+            >
                 <header className={styles.header}>
-                    <h2 className={styles.title}>Create a Group</h2>
-                    <button
-                        type="button"
-                        className={styles.closeBtn}
-                        onClick={handleClose}
-                        aria-label="Close dialog"
-                    >
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <line x1="18" y1="6" x2="6" y2="18" />
-                            <line x1="6" y1="6" x2="18" y2="18" />
+                    <div>
+                        <h2 id="create-group-title" className={styles.title}>Start a group</h2>
+                        <p className={styles.subtitle}>Name it, then choose who sits around this fire.</p>
+                    </div>
+                    <button type="button" className={styles.closeBtn} onClick={handleClose} aria-label="Close dialog">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                            <path d="M18 6L6 18M6 6l12 12" />
                         </svg>
                     </button>
                 </header>
 
-                {/* Form */}
-                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {/* Error Banner */}
-                    {error && <p className={styles.errorMessage}>{error}</p>}
+                <form onSubmit={handleSubmit} className={styles.form}>
+                    {/* Group name, written on a single charcoal line */}
+                    <label htmlFor="group-name-input" className={styles.label}>Group name</label>
+                    <input
+                        id="group-name-input"
+                        type="text"
+                        className={styles.nameInput}
+                        placeholder="Frontend guild, game night..."
+                        value={groupName}
+                        onChange={(e) => setGroupName(e.target.value)}
+                        autoFocus
+                    />
 
-                    {/* Group Name Field */}
-                    <div className={styles.fieldGroup}>
-                        <label htmlFor="group-name-input" className={styles.label}>
-                            Group Name
-                        </label>
-                        <input
-                            id="group-name-input"
-                            type="text"
-                            className={styles.textInput}
-                            placeholder="e.g. Frontend Guild, Game Night..."
-                            value={groupName}
-                            onChange={(e) => setGroupName(e.target.value)}
-                            autoFocus
-                        />
+                    <span className={styles.label} id="group-members-label">Who sits with you</span>
+
+                    {/* The circle: friends wait on an outer arc around a small glow; choosing one moves them inward and lights their coal */}
+                    <div
+                        className={useArc ? styles.arc : styles.rows}
+                        role="group"
+                        aria-labelledby="group-members-label"
+                    >
+                        {useArc && <span className={styles.glow} aria-hidden="true" />}
+                        {friends.map((friend, index) => {
+                            const isSelected = selectedUserIds.includes(friend.userId);
+                            const heat = friendWarmth(friend.createdAt); // the same warmth the friend's coal has on the Friends screen
+                            const coalStyle: CSSVars = {
+                                borderRadius: lumpShape(friend.userId),
+                                '--warm': `rgb(${heat.rgb.join(',')})`,
+                            };
+                            return (
+                                <button
+                                    key={friend.userId}
+                                    type="button"
+                                    className={`${styles.seat} ${isSelected ? styles.seatChosen : ''}`}
+                                    style={useArc ? seatPosition(index, friends.length, isSelected) : undefined}
+                                    aria-pressed={isSelected}
+                                    onClick={() => handleToggleFriend(friend.userId)}
+                                >
+                                    <span className={styles.coal} style={coalStyle} aria-hidden="true">
+                                        {friend.username.charAt(0).toUpperCase()}
+                                    </span>
+                                    <span className={styles.seatName}>{friend.username}</span>
+                                </button>
+                            );
+                        })}
+
+                        {friends.length === 0 && (
+                            <p className={styles.noFriends}>No friends yet. Add someone from the Friends tab first.</p>
+                        )}
                     </div>
 
-                    {/* Member Selection List */}
-                    <div className={styles.fieldGroup}>
-                        <label className={styles.label}>
-                            Select Friends ({selectedUserIds.length} selected)
-                        </label>
+                    {error && <p className={styles.errorMessage} role="alert">{error}</p>}
 
-                        <div className={styles.friendsList}>
-                            {friends.map((friend) => {
-                                const isSelected = selectedUserIds.includes(friend.userId);
-
-                                return (
-                                    <div
-                                        key={friend.userId}
-                                        className={`${styles.friendRow} ${isSelected ? styles.friendRowSelected : ''}`}
-                                        onClick={() => handleToggleFriend(friend.userId)}
-                                    >
-                                        <div className={styles.friendLeft}>
-                                            <div className={styles.avatarMini}>
-                                                {friend.username.charAt(0).toUpperCase()}
-                                            </div>
-                                            <span className={styles.friendName}>{friend.username}</span>
-                                        </div>
-
-                                        {/* Checkbox Box */}
-                                        <div className={`${styles.checkboxBox} ${isSelected ? styles.checkboxChecked : ''}`}>
-                                            {isSelected && (
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-
-                            {friends.length === 0 && (
-                                <p style={{ color: 'var(--muted)', textAlign: 'center', fontSize: '13px', padding: '16px 0' }}>
-                                    No friends found. Add friends first to start a group!
-                                </p>
-                            )}
+                    <div className={styles.footer}>
+                        <span className={styles.count}>
+                            {chosenCount === 0 ? 'Nobody chosen yet' : `${chosenCount} ${chosenCount === 1 ? 'person' : 'people'} chosen`}
+                        </span>
+                        <div className={styles.actions}>
+                            <button type="button" className={styles.cancelBtn} onClick={handleClose}>
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className={styles.submitBtn}
+                                disabled={isSubmitting || !groupName.trim() || selectedUserIds.length === 0}
+                            >
+                                {isSubmitting ? 'Creating...' : 'Create group'}
+                            </button>
                         </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className={styles.actionsRow}>
-                        <button type="button" className={styles.cancelBtn} onClick={handleClose}>
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className={styles.submitBtn}
-                            disabled={isSubmitting || !groupName.trim() || selectedUserIds.length === 0}
-                        >
-                            {isSubmitting ? 'Creating...' : 'Create Group'}
-                        </button>
                     </div>
                 </form>
             </div>
         </div>
     );
 }
-

@@ -1,121 +1,117 @@
-/* Floating toast notification container positioned in the top-right corner */
-.toastContainer {
+/* A charcoal note in the top right corner, with a rough hand drawn edge like the other panels */
+.toast {
+    composes: rough from '../../../../components/hearth/hearth.module.css';
     position: fixed;
-    top: 24px;
-    right: 28px;
+    top: 22px;
+    right: 26px;
     z-index: 1000;
-    width: 360px;
+    width: 350px;
     max-width: calc(100vw - 40px);
-    background-color: rgba(28, 22, 17, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(229, 117, 61, 0.4);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 16px rgba(229, 117, 61, 0.15);
-    border-radius: 12px;
-    padding: 12px 14px;
     display: flex;
-    align-items: flex-start;
-    gap: 12px;
-    cursor: pointer;
-    user-select: none;
-    animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    transition: transform 0.15s ease, border-color 0.15s ease;
+    align-items: stretch;
+    border-radius: 16px;
+    background-color: rgba(20, 16, 13, 0.97);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: toastIn 0.5s var(--ease, ease-out) both;
+    transition: transform 0.2s var(--ease, ease-out);
 }
 
-/* Hover effect to indicate clickable target */
-.toastContainer:hover {
+.toast:hover {
     transform: translateY(-2px);
-    border-color: rgba(229, 117, 61, 0.7);
 }
 
-/* Subtle glow spark dot on the left of the toast */
-.sparkDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-top: 5px;
-    flex-shrink: 0;
-    background-color: var(--accent, #e5753d);
-    box-shadow: 0 0 8px rgba(229, 117, 61, 0.8);
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(26px); }
+    to { opacity: 1; transform: none; }
 }
 
-/* Content block containing header and snippet */
-.contentBlock {
+/* The clickable body: room, sender, and the message */
+.open {
     flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 2px;
-}
-
-/* Top metadata row with sender name and room badge */
-.topRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-/* Sender username styling in warm ember tone */
-.senderName {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--ember-hot, #ff9345);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Room name pill tag */
-.roomBadge {
-    font-size: 11px;
-    color: var(--muted, #8e8276);
-    background-color: rgba(255, 255, 255, 0.06);
-    padding: 2px 8px;
-    border-radius: 9999px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 140px;
-}
-
-/* Message body snippet */
-.snippetText {
-    font-size: 12px;
-    color: var(--text, #f4eee7);
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.4;
-}
-
-/* Dismiss close button */
-.closeButton {
-    background: transparent;
+    padding: 14px 6px 16px 18px;
     border: none;
-    color: var(--muted, #8e8276);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
-    padding: 2px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 4px;
-    transition: color 0.15s ease;
+}
+
+.room {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint, #958b80);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sender {
+    font-family: var(--serif, Georgia, serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--ember-hot, #ffb072);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.snippet {
+    margin-top: 2px;
+    font-size: 13.5px;
+    color: var(--text, #eeeae5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.close {
     flex-shrink: 0;
+    width: 46px;
+    border: none;
+    background: none;
+    color: var(--faint, #958b80);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: color 0.2s;
 }
 
-.closeButton:hover {
-    color: var(--text, #f4eee7);
+.close:hover {
+    color: var(--text, #eeeae5);
 }
 
-/* Slide in animation */
-@keyframes toastSlideIn {
-    from {
-        opacity: 0;
-        transform: translateY(-12px) scale(0.96);
+/* The heat line along the bottom: full and hot when the note arrives, short and ash when it leaves */
+.burn {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 0;
+    height: 2px;
+    transform-origin: left;
+    animation: burnDown var(--toast-ms, 4500ms) linear both;
+}
+
+@keyframes burnDown {
+    0% { transform: scaleX(1); background-color: #ffb072; }
+    50% { background-color: #e5753d; }
+    100% { transform: scaleX(0); background-color: #5a3a2a; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .burn {
+        animation: none;
     }
-    to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+
+    .toast:hover {
+        transform: none;
     }
 }

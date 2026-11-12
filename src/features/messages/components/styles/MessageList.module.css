@@ -1,36 +1,111 @@
-/* Scrollable stream container for chat messages */
-.container {
+/* The scrolling area under the masthead. Its top edge fades so lines slide out of view softly */
+.scroller {
+    position: relative;
+    z-index: 1;
     flex: 1;
     min-height: 0;
+    width: 100%;
     overflow-y: auto;
     overflow-x: hidden;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 16px 6px 16px 2px;
     scrollbar-width: thin;
-    scrollbar-color: rgba(214, 198, 180, 0.2) transparent;
+    scrollbar-color: rgba(214, 198, 180, 0.18) transparent;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 28px);
     /* The browser's own scroll anchoring would also adjust the position when older messages load,
        on top of the adjustment MessageList makes, so it is turned off here */
     overflow-anchor: none;
 }
 
-/* "Load older messages" at the top of the stream */
-.loadOlder {
-    align-self: center;
-    padding: 6px 14px;
+.scroller::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scroller::-webkit-scrollbar-thumb {
+    background-color: rgba(214, 198, 180, 0.15);
     border-radius: 999px;
-    border: 1px solid rgba(214, 198, 180, 0.15);
-    background: transparent;
+}
+
+/* The thread: the conversation's column. The large bottom padding keeps the newest line above the composer and the fire */
+.thread {
+    position: relative;
+    width: var(--column, min(820px, calc(100% - 64px)));
+    margin: 0 auto;
+    padding: 30px 0 236px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    animation: threadIn 0.35s var(--ease) both;
+}
+
+@keyframes threadIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* The spine: a hand drawn charcoal line down the middle. The colour stops are measured from the bottom in pixels,
+   so it is always hot where it meets the fire and ash above, however long the thread is.
+   It grows up out of the fire whenever a room opens */
+.spine {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 1.5px;
+    margin-left: -0.75px;
+    background: linear-gradient(to top, #ffb072 0, rgba(229, 117, 61, 0.6) 170px, rgba(214, 198, 180, 0.2) 440px, rgba(214, 198, 180, 0.2) 100%);
+    filter: url(#hearth-rough);
+    transform-origin: bottom;
+    animation: spineGrow 0.6s var(--ease) both;
+}
+
+@keyframes spineGrow {
+    from { transform: scaleY(0); }
+    to { transform: scaleY(1); }
+}
+
+/* A patch of the dark ground behind words that sit on the spine, so the line breaks around them */
+.dayLabel,
+.loadOlder {
+    background: radial-gradient(closest-side, #0b0907 72%, rgba(11, 9, 7, 0));
+}
+
+/* A day break cuts across the spine in large italic serif */
+.dayBreak {
+    position: relative;
+    text-align: center;
+    margin: 12px 0 2px;
+}
+
+.dayLabel {
+    display: inline-block;
+    padding: 6px 28px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 23px;
+    letter-spacing: -0.01em;
     color: var(--muted);
+}
+
+/* "Earlier messages", set in small capitals on the spine at the top of the thread */
+.loadOlder {
+    position: relative;
+    align-self: center;
+    min-height: 36px;
+    padding: 0 26px;
+    border: none;
+    color: var(--faint);
     font: inherit;
-    font-size: 12px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     cursor: pointer;
+    transition: color 0.2s;
 }
 
 .loadOlder:hover:not(:disabled) {
     color: var(--text);
-    border-color: rgba(214, 198, 180, 0.3);
 }
 
 .loadOlder:disabled {
@@ -38,20 +113,157 @@
     opacity: 0.6;
 }
 
-/* Custom scrollbar styling for webkit browsers */
-.container::-webkit-scrollbar {
-    width: 6px;
+/* A group: left side, spine column, right side */
+.group {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr);
+    align-items: start;
 }
 
-.container::-webkit-scrollbar-track {
-    background: transparent;
+.body {
+    grid-row: 1;
+    min-width: 0;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
 }
 
-.container::-webkit-scrollbar-thumb {
-    background-color: rgba(214, 198, 180, 0.15);
-    border-radius: 999px;
+/* Theirs: words on the left, flush against the spine; the time on the right */
+.theirs .body {
+    grid-column: 1;
+    justify-self: end;
 }
 
-.container::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(214, 198, 180, 0.25);
+.theirs .when {
+    grid-column: 3;
+    justify-self: start;
+}
+
+/* Yours: words on the right; the time on the left */
+.mine .body {
+    grid-column: 3;
+    justify-self: start;
+}
+
+.mine .when {
+    grid-column: 1;
+    justify-self: end;
+    margin-top: 3px;
+}
+
+/* The speaker's name in small capitals, once per group */
+.who {
+    margin-bottom: 3px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+/* "You" is only needed on phones, where both sides share one column */
+.whoMe {
+    display: none;
+}
+
+/* The time, set against the spine on the opposite side like a mark on a ruler */
+.when {
+    grid-row: 1;
+    font-size: 11px;
+    line-height: 18px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* The tick: a short charcoal stroke from the spine to the words. It cools with the group's newest message */
+.tick {
+    grid-row: 1;
+    grid-column: 2;
+    width: 28px;
+    height: 1.5px;
+    background-color: rgba(214, 198, 180, 0.28);
+    filter: url(#hearth-rough);
+    animation: coolTick var(--cool-duration, 3600s) linear var(--cool-delay, -3600s) both;
+}
+
+.theirs .tick {
+    justify-self: start; /* the left half of the spine column, running from the words to the spine */
+    margin-top: 8px; /* level with the speaker's name */
+    transform-origin: right;
+}
+
+.mine .tick {
+    justify-self: end; /* the right half, from the spine to the words */
+    margin-top: 12px; /* level with the first line */
+    transform-origin: left;
+}
+
+@keyframes coolTick {
+    0% { background-color: #ffd29c; }
+    6% { background-color: #f08a45; }
+    30% { background-color: #9c5a38; }
+    100% { background-color: rgba(214, 198, 180, 0.28); }
+}
+
+/* A new message's tick draws itself out from the spine as the streak arrives */
+.tickFresh {
+    animation:
+        coolTick var(--cool-duration, 3600s) linear var(--cool-delay, -3600s) both,
+        tickDraw 0.38s var(--ease) 0.32s both;
+}
+
+@keyframes tickDraw {
+    from { transform: scaleX(0); }
+    to { transform: scaleX(1); }
+}
+
+/* Phones: one column, the spine on the left, both sides' words to its right */
+@media (max-width: 760px) {
+    .thread {
+        padding: 18px 0 150px;
+    }
+
+    .spine {
+        left: 12px;
+    }
+
+    .group {
+        grid-template-columns: 24px minmax(0, 1fr);
+    }
+
+    .theirs .body,
+    .mine .body {
+        grid-column: 2;
+        justify-self: start;
+        max-width: none;
+    }
+
+    .when {
+        display: none;
+    }
+
+    .whoMe {
+        display: inline;
+    }
+
+    .theirs .tick,
+    .mine .tick {
+        grid-column: 1;
+        justify-self: end;
+        width: 12px;
+        margin-top: 8px;
+        transform-origin: left;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .thread,
+    .spine,
+    .tick,
+    .tickFresh {
+        animation: none;
+    }
 }

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import styles from '../../../pages/styles/DashboardPage.module.css';
+import styles from '../styles/Messages.module.css';
 import type { Room } from '../../../models/Room';
 import type { ChatMessage } from '../../../models/ChatMessage';
 import type { ConnectionStatus } from '../context/WebSocketContext';
 import MessageList from './MessageList';
+import { formatRelativeTime } from '../../friends/utils/formatDates';
 
 const MAX_MESSAGE_LENGTH = 4000; // the server rejects longer messages, so the input stops at the same limit
 
@@ -16,21 +17,28 @@ export interface ChatStageProps {
     isLoadingOlder: boolean; // true while an older page is loading
     onLoadOlder: () => void; // asks for the next older page
     onSendMessage: (text: string) => boolean; // returns false when the message could not be sent, so the draft is kept
-    connectionStatus: ConnectionStatus; // shown in the header while the connection is not open
+    connectionStatus: ConnectionStatus; // shown in the masthead while the connection is not open
     isConnected: boolean; // sending is disabled while false
     sendError: string | null; // why the last message failed, shown above the composer
     onDismissSendError: () => void; // hides the send error
 }
 
-// Text shown in the header for each connection state, empty when everything is fine
+// What the masthead says while the connection is not open, empty when everything is fine
 const STATUS_TEXT: Record<ConnectionStatus, string> = {
     CONNECTED: '',
-    CONNECTING: 'Connecting...',
-    RECONNECTING: 'Reconnecting...',
-    DISCONNECTED: 'Offline',
+    CONNECTING: 'Connecting',
+    RECONNECTING: 'Reconnecting',
+    DISCONNECTED: 'Offline, sending waits',
 };
 
-// Main stage component rendering the active conversation canvas and composer.
+// The masthead's second line: how long ago the room last heard anything
+function activeText(room: Room): string {
+    const last = room.last_message?.created_at;
+    return last ? `Last word ${formatRelativeTime(last)}` : 'No messages yet';
+}
+
+// The open conversation. The room's name is set large as a masthead, the thread hangs from it down to a low fire,
+// and the composer rests just above the fire. With no room open, a campfire burns alone in the middle.
 // It only displays what it is given; the draft text is the one piece of state it owns
 export default function ChatStage({
     selectedRoom,
@@ -47,6 +55,8 @@ export default function ChatStage({
 }: ChatStageProps): React.JSX.Element {
     // Local draft text, kept here so typing does not re-render the sidebar
     const [draftMessage, setDraftMessage] = useState<string>('');
+
+    const canSend = selectedRoom != null && isConnected && draftMessage.trim().length > 0;
 
     // Sends the draft and clears it, but only if it was actually sent, so nothing typed is lost while offline
     const handleSend = () => {
@@ -66,12 +76,44 @@ export default function ChatStage({
         }
     };
 
-    const statusText = STATUS_TEXT[connectionStatus];
+    // Nothing open: the campfire burns alone with one line under it
+    if (!selectedRoom) {
+        return (
+            <main className={styles.stage} aria-label="Conversation">
+                <div className={styles.empty}>
+                    {/* data-hearth-fire asks the hearth canvas to burn its campfire in the centre of this box */}
+                    <div className={styles.hearthSpot} data-hearth-fire="" data-hearth-size="540" aria-hidden="true" />
+                    <h2 className={styles.emptyTitle}>The fire is going.</h2>
+                    <p className={styles.emptyText}>Open a conversation from the list, or start a group.</p>
+                </div>
+            </main>
+        );
+    }
 
-    // Chooses what fills the stage: the message list, a loading line, or the hearth empty state
-    const renderBody = () => {
-        if (selectedRoom && messages.length > 0) {
-            return (
+    const statusText = STATUS_TEXT[connectionStatus];
+    const isQuiet = messages.length === 0; // loading or genuinely empty, the bed smoulders either way
+
+    return (
+        <main className={styles.stage} aria-label="Conversation">
+            {/* The masthead: the room's name, what kind of room it is, and when it last heard anything (or the connection state) */}
+            <header className={styles.masthead}>
+                <h2 className={styles.mastName}>{selectedRoom.name}</h2>
+                <p className={styles.mastMeta} role="status">
+                    <span>{selectedRoom.room_type === 'group' ? 'Group' : 'Direct'}</span>
+                    <span className={statusText ? styles.mastStatus : styles.mastActive}>
+                        {statusText || activeText(selectedRoom)}
+                    </span>
+                </p>
+            </header>
+
+            {isQuiet ? (
+                <div className={styles.quiet}>
+                    <p className={styles.quietTitle}>
+                        {isLoadingHistory ? 'Gathering the conversation...' : `${selectedRoom.name} is quiet.`}
+                    </p>
+                    {!isLoadingHistory && <p className={styles.quietText}>Your first message lights the fire.</p>}
+                </div>
+            ) : (
                 <MessageList
                     roomId={selectedRoom.id}
                     messages={messages}
@@ -79,91 +121,51 @@ export default function ChatStage({
                     isLoadingOlder={isLoadingOlder}
                     onLoadOlder={onLoadOlder}
                 />
-            );
-        }
-        return (
-            <div className={styles.stageEmptyContent}>
-                {/* The hearth fireplace canvas spot */}
-                <div
-                    className={styles.hearthSpot}
-                    data-hearth-fire=""
-                    data-hearth-size="540" // size parameter consumed by HearthProvider to draw the fireplace
-                    aria-hidden="true"
-                />
-                <h2 className={styles.emptyHeading}>
-                    {selectedRoom ? selectedRoom.name : 'The hearth is warm'}
-                </h2>
-                <p className={styles.emptySubtitle}>
-                    {!selectedRoom
-                        ? 'Select a conversation from the left to begin chatting.'
-                        : isLoadingHistory
-                            ? 'Loading messages...'
-                            : 'This is the start of your conversation. Send a message below.'}
-                </p>
-            </div>
-        );
-    };
+            )}
 
-    return (
-        <main className={styles.stagePane} aria-label="Main Canvas">
-            {/* Header displaying the active room title, its type, and the connection state when it is not connected */}
-            <header className={styles.stageHeader}>
-                <span className={styles.stageHeaderTitle}>
-                    {selectedRoom ? selectedRoom.name : 'Select a conversation'}
-                </span>
-                <span className={styles.stageHeaderMeta} role="status">
-                    {statusText || (selectedRoom ? selectedRoom.room_type : '')}
-                </span>
-            </header>
-
-            {renderBody()}
+            {/* The long low fire. The hearth canvas draws it along this element's bottom edge;
+                kindling keeps it smouldering until the room has messages */}
+            <div
+                className={styles.bed}
+                data-hearth-fire=""
+                data-hearth-shape="bed"
+                data-hearth-intensity={isQuiet ? 'kindling' : 'full'}
+                aria-hidden="true"
+            />
 
             {/* Why the last message was not sent, so a failure is never silent */}
             {sendError && (
-                <div role="alert" style={{ color: 'var(--accent)', fontSize: '13px', padding: '4px 4px 8px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div role="alert" className={styles.sendError}>
                     <span>{sendError}</span>
-                    <button
-                        type="button"
-                        onClick={onDismissSendError}
-                        aria-label="Dismiss send error"
-                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' }}
-                    >
-                        ×
+                    <button type="button" className={styles.textBtn} onClick={onDismissSendError}>
+                        Dismiss
                     </button>
                 </div>
             )}
 
-            {/* Bottom message composer dock */}
-            <div className={styles.chatInputDock}>
-                <div className={styles.dockInputWrapper}>
-                    <input
-                        type="text"
-                        className={styles.dockInput}
-                        placeholder={
-                            !selectedRoom
-                                ? 'Select a conversation first...'
-                                : isConnected
-                                    ? `Message ${selectedRoom.name}...`
-                                    : 'Waiting for the connection to come back...'
-                        }
-                        aria-label="Message composer"
-                        value={draftMessage}
-                        maxLength={MAX_MESSAGE_LENGTH}
-                        onChange={(e) => setDraftMessage(e.target.value)} // binds input value to local state
-                        onKeyDown={handleKeyDown} // captures enter key
-                        disabled={!selectedRoom} // typing is still allowed while offline, only sending waits
-                    />
-                </div>
+            {/* The composer: who it goes to, the line to write on, and a send plate that heats up once there is text */}
+            <div className={styles.composer}>
+                <span className={styles.composerTo} aria-hidden="true">To {selectedRoom.name}</span>
+                <input
+                    type="text"
+                    className={styles.composerInput}
+                    placeholder={isConnected ? 'Write something' : 'Waiting for the connection to come back'}
+                    aria-label={`Message ${selectedRoom.name}`}
+                    value={draftMessage}
+                    maxLength={MAX_MESSAGE_LENGTH}
+                    onChange={(e) => setDraftMessage(e.target.value)} // binds input value to local state
+                    onKeyDown={handleKeyDown} // captures enter key
+                />
                 <button
                     type="button"
-                    className={styles.dockSendBtn}
-                    aria-label="Send message"
+                    className={`${styles.send} ${canSend ? styles.sendHot : ''}`}
                     onClick={handleSend}
-                    disabled={!selectedRoom || !draftMessage.trim() || !isConnected} // no sending while empty or offline
+                    disabled={!canSend} // no sending while empty or offline; typing is still allowed offline
                 >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="12" y1="19" x2="12" y2="5" />
-                        <polyline points="5 12 12 5 19 12" />
+                    Send
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M9 10l-5 5 5 5" />
+                        <path d="M20 4v7a4 4 0 0 1-4 4H4" />
                     </svg>
                 </button>
             </div>

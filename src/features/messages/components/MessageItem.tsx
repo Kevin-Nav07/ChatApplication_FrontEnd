@@ -1,53 +1,39 @@
-import React, { memo } from 'react';
+import React, { memo, useEffect, useState } from 'react';
 import styles from './styles/MessageItem.module.css';
 import type { ChatMessage } from '../../../models/ChatMessage';
-import { useUserContext } from '../../../hooks/useUserContext';
+import { useHearth } from '../../../components/hearth/useHearth';
+import { coolingStyle, isFresh } from '../utils/heat';
 
-// Props accepted by the individual MessageItem component
+// Props accepted by one line of a message group
 export interface MessageItemProps {
     message: ChatMessage; // the message data object to render
+    isMe: boolean; // which side of the spine the line hangs on, decides where the arrival streak runs
 }
 
-// Formats an ISO date string into a clean localized time string like "11:04 AM"
-function formatMessageTime(isoString: string): string {
-    try {
-        const date = new Date(isoString); // converts ISO string to Date instance
-        return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); // formats to standard hour:minute
-    } catch {
-        return ''; // returns empty string if timestamp parsing encounters an error
-    }
-}
+// One message as a line of text. Its colour cools from ember to charcoal over an hour, driven by CSS alone.
+// A message that just arrived plays its moment: a streak of heat runs up the spine from the fire,
+// then the words kindle in. When it is someone else's, the fire flares as if it was fed
+function MessageItemComponent({ message, isMe }: MessageItemProps): React.JSX.Element {
+    const hearth = useHearth();
+    // Decided once, when the line first appears, so a later re-render never replays the moment
+    const [fresh] = useState<boolean>(() => isFresh(message.created_at));
 
-// Renders an individual message bubble, automatically checking UserContext to determine left/right placement
-function MessageItemComponent({ message }: MessageItemProps): React.JSX.Element {
-    // Reads authenticated user directly from context (Approach A)
-    const { user } = useUserContext(); // reaches up to UserContextProvider
-
-    // Determines whether the current logged in user sent this message
-    const isMe = user != null && message.sender_id === user.id; // true if sender ID matches authenticated user
+    // An arriving message from someone else feeds the fire
+    useEffect(() => {
+        if (fresh && !isMe) {
+            hearth.flare();
+        }
+    }, [fresh, isMe, hearth]);
 
     return (
-        <div className={`${styles.messageRow} ${isMe ? styles.rowMe : styles.rowThem}`}>
-            {/* Author username is displayed above messages originating from others */}
-            {!isMe && (
-                <span className={styles.author}>
-                    {message.sender_username}
-                </span>
-            )}
-
-            {/* Bubble containing the message body */}
-            <div className={`${styles.bubble} ${isMe ? styles.bubbleMe : styles.bubbleThem}`}>
+        <p className={`${styles.line} ${isMe ? styles.lineMe : styles.lineThem} ${fresh ? styles.fresh : ''}`}>
+            {fresh && <span className={styles.streak} aria-hidden="true" />}
+            <span className={styles.text} style={coolingStyle(message.created_at)}>
                 {message.content}
-            </div>
-
-            {/* Timestamp label displayed below the bubble */}
-            <span className={styles.timestamp}>
-                {formatMessageTime(message.created_at)}
             </span>
-        </div>
+        </p>
     );
 }
 
-// Memoized export to prevent re-rendering historical bubbles when a new message is appended to the list
+// Memoized export to prevent re-rendering historical lines when a new message is appended to the list
 export default memo(MessageItemComponent);
-

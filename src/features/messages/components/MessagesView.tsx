@@ -2,6 +2,7 @@ import React, { useEffect, useReducer, useRef } from 'react';
 import ConversationList from './ConversationList';
 import ChatStage from './ChatStage';
 import ChatToast from './ChatToast';
+import styles from '../styles/Messages.module.css';
 import type { Room } from '../../../models/Room';
 import { getRoomMessages, getRooms } from '../../../services/roomService';
 import { getErrorMessage } from '../../../models/AppError';
@@ -173,28 +174,27 @@ export default function MessagesView({ initialRoomId, onSelectedRoomChange }: Me
     const toastRoom = state.toast ? state.rooms.find((room) => room.id === state.toast?.roomId) : undefined;
 
     return (
-        <>
+        // data-hearth-calm asks the hearth to keep this screen free of drifting embers and sparks: only the fire itself burns
+        <div className={styles.room} data-hearth-calm="">
             {/* A failed load, dismissible so it does not stay forever */}
             {state.error && (
-                <div role="alert" style={{ color: 'var(--accent)', padding: '8px 16px', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div role="alert" className={styles.loadError}>
                     <span>{state.error}</span>
-                    <button
-                        type="button"
-                        onClick={() => dispatch({ type: 'error/cleared' })}
-                        aria-label="Dismiss error"
-                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' }}
-                    >
-                        ×
+                    <button type="button" className={styles.textBtn} onClick={() => dispatch({ type: 'error/cleared' })}>
+                        Dismiss
                     </button>
                 </div>
             )}
 
-            {/* Notification for a message in a room that is not open */}
+            {/* Notification for a message in a room that is not open. The key changes with each new notification,
+                which remounts the toast so its entrance and its burning countdown start again */}
             {state.toast && (
                 <ChatToast
+                    key={`${state.toast.roomId}:${state.toast.senderUsername}:${state.toast.snippet}`}
                     roomName={toastRoom?.name ?? 'A conversation'}
                     senderUsername={state.toast.senderUsername}
                     snippet={state.toast.snippet}
+                    durationMs={TOAST_DURATION_MS}
                     onClick={() => {
                         if (toastRoom) {
                             handleSelectRoom(toastRoom);
@@ -209,6 +209,7 @@ export default function MessagesView({ initialRoomId, onSelectedRoomChange }: Me
                 roomsLoaded={state.roomsLoaded}
                 selectedRoom={selectedRoom}
                 unreadRoomIds={state.unreadRoomIds}
+                toastRoomId={state.toast?.roomId ?? null}
                 onSelectRoom={handleSelectRoom}
                 onRoomCreated={handleRoomCreated}
             />
@@ -226,6 +227,6 @@ export default function MessagesView({ initialRoomId, onSelectedRoomChange }: Me
                 sendError={state.sendError}
                 onDismissSendError={() => dispatch({ type: 'sendError/cleared' })}
             />
-        </>
+        </div>
     );
 }

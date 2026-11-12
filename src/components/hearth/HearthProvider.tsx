@@ -18,6 +18,7 @@ interface Particle {
     drag?: number; // multiplies the velocity every frame, below 1 slows the particle down
     gravity?: number; // added to vy every frame, negative floats up and positive falls
     grow?: number; // added to the radius every frame, used by smoke as it spreads
+    ax?: number; // the x position a flame leans back toward; set for the wide bed fire, where every flame has its own centre line
 }
 
 // Every particle list the loop draws, kept together so the API functions and the loop share them
@@ -35,6 +36,10 @@ interface FirePlace {
     y: number;
     size: number; // the size the fire is scaled against, 600 is the size it was designed at
     kindling: boolean; // true while data loads, the fire burns low and grows when it is done
+    shape: 'round' | 'bed'; // round is one campfire in the centre; bed is a long low bed of coals along the element's bottom edge
+    left: number; // the element's edges in window pixels, used by the bed to know how wide to burn
+    width: number;
+    bottom: number;
 }
 
 const EMBER_COLORS = ['229,117,61', '215,130,75', '178,69,26', '240,190,140', '255,170,100'];
@@ -60,8 +65,18 @@ function findFire(): FirePlace | null {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
         size: Number(element.dataset.hearthSize) || rect.width, // data-hearth-size lets a small element ask for a bigger fire
-        kindling: element.dataset.hearthIntensity === 'kindling'
+        kindling: element.dataset.hearthIntensity === 'kindling',
+        shape: element.dataset.hearthShape === 'bed' ? 'bed' : 'round', // data-hearth-shape="bed" asks for the long low fire
+        left: rect.left,
+        width: rect.width,
+        bottom: rect.bottom
     };
+}
+
+// True while a screen has asked for a calm room with data-hearth-calm: no drifting embers or rising sparks,
+// only the fire itself. The messages screen asks for this so nothing small and glowing floats over the conversation
+function isCalm(): boolean {
+    return document.querySelector('[data-hearth-calm]') !== null;
 }
 
 // The light of a fire somewhere below the window, warming every screen from its bottom edge
@@ -76,6 +91,24 @@ function drawRoomGlow(ctx: CanvasRenderingContext2D, width: number, height: numb
 
 // Adds one flame particle at the base of the fire
 function spawnFlame(lists: ParticleLists, fire: FirePlace, scale: number): void {
+    if (fire.shape === 'bed') {
+        // Two random numbers averaged give a triangle shaped spread, so the bed burns fuller in the middle than at its ends
+        const x = fire.left + fire.width * ((Math.random() + Math.random()) / 2);
+        lists.flames.push({
+            x,
+            ax: x,
+            y: fire.bottom - 14,
+            vx: (Math.random() - 0.5) * 0.25,
+            vy: -(0.7 + Math.random() * 1.1), // slower than the campfire, so the flames stay low
+            r: 5 + Math.random() * 6,
+            life: 1,
+            decay: 0.03 + Math.random() * 0.025,
+            t: 0,
+            sway: 0,
+            color: ''
+        });
+        return;
+    }
     lists.flames.push({
         x: fire.x + (Math.random() - 0.5) * 46 * scale,
         y: fire.y + 20 * scale,
@@ -90,10 +123,91 @@ function spawnFlame(lists: ParticleLists, fire: FirePlace, scale: number): void 
     });
 }
 
+// Moves and draws the flame particles. Many faint particles are added on top of each other ('lighter' adds their colours
+// together), and each is pulled toward its centre line so they taper into tongues. Shared by the campfire and the bed
+function drawFlames(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: FirePlace, live: boolean): void {
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = lists.flames.length - 1; i >= 0; i--) {
+        const flame = lists.flames[i];
+        if (live) {
+            flame.x += flame.vx + ((flame.ax ?? fire.x) - flame.x) * 0.012; // ax is the bed flame's own centre, the campfire uses the fire's
+            flame.y += flame.vy;
+            flame.life -= flame.decay;
+        }
+        if (flame.life <= 0) {
+            lists.flames.splice(i, 1);
+            continue;
+        }
+        const color = flame.life > 0.8 ? '255,214,150' : flame.life > 0.5 ? '255,136,52' : '178,56,20';
+        ctx.fillStyle = `rgba(${color},${Math.min(1, flame.life * 1.2) * 0.2})`; // each one stays faint or the overlap saturates to white
+        ctx.beginPath();
+        ctx.arc(flame.x, flame.y, flame.r * (0.35 + 0.65 * flame.life), 0, Math.PI * 2);
+        ctx.fill();
+    }
+    ctx.globalCompositeOperation = 'source-over';
+}
+
+// Draws the long low fire that burns along the bottom of the messages screen: a wide pool of light on the floor,
+// a row of coals glowing through their cracks, and short flames. boost is above 0 for a moment after flare() is called
+function drawBed(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: FirePlace, flicker: number, intensity: number, boost: number, live: boolean): void {
+    const heat = intensity * (1 + boost * 0.9);
+
+    // Floor light: a circle gradient squashed into a wide ellipse by scaling the canvas before drawing it
+    const radius = fire.width * 0.6;
+    ctx.save();
+    ctx.translate(fire.x, fire.bottom);
+    ctx.scale(1, 0.4);
+    const floor = ctx.createRadialGradient(0, 0, 4, 0, 0, radius);
+    floor.addColorStop(0, `rgba(255,150,70,${Math.min(0.6, 0.3 * flicker * heat)})`);
+    floor.addColorStop(0.3, `rgba(229,117,61,${0.13 * flicker * heat})`);
+    floor.addColorStop(0.65, `rgba(118,34,22,${0.05 * flicker * heat})`);
+    floor.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = floor;
+    ctx.fillRect(-radius, -radius, radius * 2, radius * 2);
+    ctx.restore();
+
+    // The coals: dark lumps, each lit from inside. Their sizes come from a fixed formula, not Math.random, so they stay put between frames
+    const coalCount = Math.max(8, Math.round(fire.width / 34));
+    for (let i = 0; i < coalCount; i++) {
+        const along = (i + 0.5) / coalCount;
+        const taper = Math.sin(Math.PI * along); // 0 at the ends, 1 in the middle, so the bed thins out at its edges
+        const seed = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1; // a repeatable pseudo random number per coal
+        const x = fire.left + along * fire.width;
+        const y = fire.bottom - 6 - seed * 4;
+        const rx = (10 + seed * 14) * (0.5 + 0.5 * taper);
+        const ry = (5 + seed * 4) * (0.5 + 0.5 * taper);
+        ctx.fillStyle = '#1d140e';
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+        const glow = ctx.createRadialGradient(x, y, 0, x, y, rx);
+        const wave = 0.75 + 0.25 * Math.sin(performance.now() / 700 + i * 1.7); // each coal breathes on its own rhythm
+        glow.addColorStop(0, `rgba(255,140,60,${(0.3 + 0.45 * seed) * taper * wave * Math.min(1.4, heat)})`);
+        glow.addColorStop(1, 'rgba(255,140,60,0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+
+    if (live) {
+        const flameCount = Math.round((fire.width / 110) * (0.25 + 0.9 * intensity) * (1 + 1.6 * boost));
+        for (let i = 0; i < flameCount; i++) {
+            spawnFlame(lists, fire, 1);
+        }
+    }
+    drawFlames(ctx, lists, fire, live);
+}
+
 // Draws the fire: the light it throws on the floor, two charred logs, smoke, and the flames
-// live is false when motion is reduced, then the particles are drawn where they are without moving
-function drawFire(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: FirePlace, flicker: number, intensity: number, live: boolean): void {
-    const scale = (fire.size / DESIGN_SIZE) * (0.45 + 0.55 * intensity); // kindling burns smaller
+// live is false when motion is reduced, then the particles are drawn where they are without moving.
+// embers is false in a calm room, where the fire throws no embers up into the window
+function drawFire(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: FirePlace, flicker: number, intensity: number, live: boolean, embers = true, boost = 0): void {
+    if (fire.shape === 'bed') {
+        drawBed(ctx, lists, fire, flicker, intensity, boost, live);
+        return;
+    }
+    const scale = (fire.size / DESIGN_SIZE) * (0.45 + 0.55 * intensity) * (1 + boost * 0.25); // kindling burns smaller, a flare a little bigger
 
     // Floor light
     const floor = ctx.createRadialGradient(fire.x, fire.y + 24 * scale, 4, fire.x, fire.y + 14 * scale, fire.size * 0.58);
@@ -148,8 +262,8 @@ function drawFire(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: Fir
                 color: '150,138,126'
             });
         }
-        // Embers leave the fire and drift up across the whole window
-        if (Math.random() < 0.28 * intensity) {
+        // Embers leave the fire and drift up across the whole window, unless the screen asked for a calm room
+        if (embers && Math.random() < 0.28 * intensity) {
             lists.embers.push({
                 x: fire.x + (Math.random() - 0.5) * 30 * scale,
                 y: fire.y - 10 * scale,
@@ -189,27 +303,7 @@ function drawFire(ctx: CanvasRenderingContext2D, lists: ParticleLists, fire: Fir
         ctx.fill();
     }
 
-    // Flames: many faint particles added on top of each other ('lighter' adds their colours together),
-    // pulled toward the centre line so they taper into tongues
-    ctx.globalCompositeOperation = 'lighter';
-    for (let i = lists.flames.length - 1; i >= 0; i--) {
-        const flame = lists.flames[i];
-        if (live) {
-            flame.x += flame.vx + (fire.x - flame.x) * 0.012;
-            flame.y += flame.vy;
-            flame.life -= flame.decay;
-        }
-        if (flame.life <= 0) {
-            lists.flames.splice(i, 1);
-            continue;
-        }
-        const color = flame.life > 0.8 ? '255,214,150' : flame.life > 0.5 ? '255,136,52' : '178,56,20';
-        ctx.fillStyle = `rgba(${color},${Math.min(1, flame.life * 1.2) * 0.2})`; // each one stays faint or the overlap saturates to white
-        ctx.beginPath();
-        ctx.arc(flame.x, flame.y, flame.r * (0.35 + 0.65 * flame.life), 0, Math.PI * 2);
-        ctx.fill();
-    }
-    ctx.globalCompositeOperation = 'source-over';
+    drawFlames(ctx, lists, fire, live);
 }
 
 // Moves and draws one list of particles. Sparks are added together so they glow, ash is painted normally
@@ -301,6 +395,8 @@ export default function HearthProvider({ children }: HearthProviderProps): React
     const fxRef = useRef<HTMLCanvasElement>(null);
     // Particles change every frame, so they live in a ref: changing a ref does not re-render React, changing state would, 60 times a second
     const particlesRef = useRef<ParticleLists>({ embers: [], flames: [], smoke: [], sparks: [], ash: [] });
+    // How strongly the fire is flaring right now: flare() sets it to 1 and the drawing loop lets it fall back toward 0
+    const boostRef = useRef<number>(0);
     const reducedMotion = usePrefersReducedMotion();
 
     // Starts the drawing loop once the canvases exist, and stops it when the dashboard closes
@@ -347,7 +443,7 @@ export default function HearthProvider({ children }: HearthProviderProps): React
                             spawnFlame(lists, fire, fire.size / DESIGN_SIZE);
                         }
                         lists.flames.forEach((flame) => {
-                            flame.x += flame.vx + (fire.x - flame.x) * 0.012;
+                            flame.x += flame.vx + ((flame.ax ?? fire.x) - flame.x) * 0.012;
                             flame.y += flame.vy;
                             flame.life -= flame.decay;
                         });
@@ -363,8 +459,10 @@ export default function HearthProvider({ children }: HearthProviderProps): React
             };
         }
 
-        // Embers rush up from the bottom as the dashboard opens, the same fire following you in from the landing page
-        for (let i = 0; i < 100; i++) {
+        // Embers rush up from the bottom as the dashboard opens, the same fire following you in from the landing page.
+        // Skipped when the first screen is a calm one, which wants no small glowing particles over it
+        const rushCount = isCalm() ? 0 : 100;
+        for (let i = 0; i < rushCount; i++) {
             lists.sparks.push({
                 x: Math.random() * width,
                 y: height + Math.random() * 60,
@@ -399,18 +497,26 @@ export default function HearthProvider({ children }: HearthProviderProps): React
             fxCtx.clearRect(0, 0, width, height);
 
             const fire = findFire();
+            const calm = isCalm();
             intensity += ((fire?.kindling ? 0.35 : 1) - intensity) * 0.02;
-            drawRoomGlow(skyCtx, width, height, flicker, fire ? 0.06 : 0.12);
+            const boost = boostRef.current;
+            boostRef.current *= 0.955; // a flare fades out over about a second
+            drawRoomGlow(skyCtx, width, height, flicker, (fire ? 0.06 : 0.12) * (1 + boost * 0.8));
             if (fire) {
-                drawFire(skyCtx, lists, fire, flicker, intensity, true);
+                drawFire(skyCtx, lists, fire, flicker, intensity, true, !calm, boost);
             }
             else {
                 lists.flames.length = 0;
                 lists.smoke.length = 0;
             }
 
-            // A slow drift of embers from below the window, on every screen. Sparse, so it reads as embers and not as a pattern of dots
-            if (Math.random() < 0.055) {
+            // A calm room clears the embers already in the air, so none are left floating over the screen that asked for calm
+            if (calm) {
+                lists.embers.length = 0;
+            }
+
+            // A slow drift of embers from below the window, on every screen that is not calm. Sparse, so it reads as embers and not as a pattern of dots
+            if (!calm && Math.random() < 0.055) {
                 lists.embers.push({
                     x: Math.random() * width,
                     y: height + 8,
@@ -448,6 +554,11 @@ export default function HearthProvider({ children }: HearthProviderProps): React
     // The functions components call. useMemo keeps the same object between renders so components using it do not re-render for nothing
     const hearth = useMemo<HearthApi>(() => ({
         reducedMotion,
+        flare: () => {
+            if (!reducedMotion) {
+                boostRef.current = 1; // the drawing loop reads this every frame
+            }
+        },
         burst: (x, y, count = 14, power = 1) => {
             if (reducedMotion) {
                 return;
