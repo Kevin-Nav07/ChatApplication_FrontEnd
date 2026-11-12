@@ -1,14 +1,13 @@
 import axios, { AxiosError, type AxiosInstance, type CreateAxiosDefaults, type AxiosResponse, type InternalAxiosRequestConfig } from "axios";
 import { AppError } from "../models/AppError";
-
-const config: ImportMetaEnv = import.meta.env;
+import { API_BASE_URL } from "./apiConfig";
 
 /*
 This is a base service which all services will import. This includes configuration options
 that will be present in all api calls and headers present in all api calls
 */
 const axiosOptions: CreateAxiosDefaults = {
-    baseURL: config.VITE_API_BASE_URL,//base url
+    baseURL: API_BASE_URL,//"/api" in production (same origin), the full backend address in development, see apiConfig.ts
     headers: {
         "Content-Type": "application/json",
         "Accept": "application/json",

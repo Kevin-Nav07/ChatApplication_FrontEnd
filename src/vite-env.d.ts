@@ -4,7 +4,8 @@
 */
 
 interface ImportMetaEnv {
-    readonly VITE_API_BASE_URL: string;
+    // optional: unset in production builds, where apiConfig.ts falls back to the same-origin "/api"
+    readonly VITE_API_BASE_URL?: string;
 }
 
 interface ImportMeta {

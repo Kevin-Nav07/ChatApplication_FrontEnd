@@ -2,15 +2,12 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { WebSocketContext, type ConnectionStatus, type SocketEvent, type SocketEventListener, type WebSocketContextType } from './WebSocketContext';
 import { getUserMe } from '../../../services/authService';
 import { AppError } from '../../../models/AppError';
+import { WS_URL } from '../../../services/apiConfig'; // wss://<same host as the API>/ws, worked out once in apiConfig.ts
 
 // Props accepted by the provider component
 interface WebSocketProviderProps {
     children: React.ReactNode; // child components that will have access to the websocket API
 }
-
-// Extracts the backend API URL and transforms http/https into ws/wss protocols
-const rawApiUrl = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5043';
-const WS_URL = rawApiUrl.replace(/^http/, 'ws'); // replaces http with ws and https with wss
 
 const MAX_RECONNECT_DELAY_MS = 30000; // retries never wait longer than 30 seconds
 
