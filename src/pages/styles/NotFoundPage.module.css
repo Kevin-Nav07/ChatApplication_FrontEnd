@@ -1,0 +1,89 @@
+/* A cold room around a fire burned down to kindling */
+.page {
+    position: relative;
+    z-index: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+    color: var(--text);
+}
+
+/* The box the low fire burns in, above the words */
+.fireSpot {
+    width: 200px;
+    height: 170px;
+}
+
+.code {
+    margin: 18px 0 0;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    color: var(--faint);
+}
+
+/* The title lit from below, by what is left of the fire */
+.title {
+    composes: lit from '../../components/hearth/hearth.module.css';
+    margin: 12px 0 0;
+    font-family: var(--serif);
+    font-weight: 460;
+    font-size: clamp(36px, 5vw, 60px);
+    line-height: 1.02;
+    letter-spacing: -0.03em;
+    font-variation-settings: 'opsz' 144;
+    padding-bottom: 6px;
+}
+
+.text {
+    margin: 12px 0 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--muted);
+}
+
+/* A word with an ember underline that draws in on hover */
+.link {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 22px;
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 500;
+    text-decoration: none;
+}
+
+.link::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    height: 1.5px;
+    background-color: var(--accent);
+    transform: scaleX(0.3);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+}
+
+.link:hover::after {
+    transform: scaleX(1);
+}
+
+.link:focus-visible {
+    outline: 2px solid var(--muted);
+    outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .link::after {
+        transition: none;
+    }
+}

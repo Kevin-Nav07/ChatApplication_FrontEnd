@@ -4,6 +4,7 @@ import styles from '../styles/Friends.module.css';
 import { coalStyle, friendRing, friendWarmth, heatTextColor, requestHeat, type CSSVars } from '../utils/heat';
 import { formatRelativeTime } from '../utils/formatDates';
 import { useHearth } from '../../../components/hearth/useHearth';
+import { lumpShape } from '../../../components/hearth/lumpShape';
 import type { HearthApi } from '../../../components/hearth/hearthContext';
 
 // Props for the circle around the fire
@@ -273,6 +274,7 @@ export default function FriendsCircle({
                                         <button
                                             type="button"
                                             className={styles.coal}
+                                            style={{ borderRadius: lumpShape(seat.id) }} // an irregular lump, the same one this friend has everywhere
                                             data-coal=""
                                             data-burn-key={key}
                                             aria-label={`${seat.name}, find in the list`}
@@ -284,7 +286,13 @@ export default function FriendsCircle({
                                     </>
                                 ) : (
                                     <>
-                                        <span className={`${styles.coal} ${styles.coalCold}`} data-coal="" data-burn-key={key} aria-hidden="true">
+                                        <span
+                                            className={`${styles.coal} ${styles.coalCold}`}
+                                            style={{ borderRadius: lumpShape(seat.id) }}
+                                            data-coal=""
+                                            data-burn-key={key}
+                                            aria-hidden="true"
+                                        >
                                             {seat.name.charAt(0).toUpperCase()}
                                         </span>
                                         <div className={styles.seatLabel} data-burn-key={key}>

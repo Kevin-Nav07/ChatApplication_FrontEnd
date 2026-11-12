@@ -1,35 +1,51 @@
 :root {
-  /* 
-    The Ember Palette
+  /*
+    The Ember palette. Every screen sits in the same dark room lit by one fire,
+    so these tokens are shared by the landing page, the auth pages, the dashboard and the 404 page
   */
 
-  /* Typography */
+  /* Typography: the warm serif for headings, the brand face for everything else */
   --font-display: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --serif: 'Fraunces', Georgia, serif;
+  --font: var(--font-body);
 
-  /* Core Brand */
+  /* Core brand */
   --color-primary: #e5753d;
   --color-primary-dark: #b2451a;
   --color-accent: #762216;
 
-  /* Surfaces & Backgrounds */
-  --color-background: #1a190b;
-  --color-background-deep: #0e0d0a;
+  /* Older names still used by a few components */
+  --color-background: #0b0907;
+  --color-background-deep: #0b0907;
   --color-surface: #42240f;
+  --color-text-main: #eeeae5;
+  --color-text-muted: #b5ab9f;
 
-  /* Form Elements */
-  --color-input-bg: rgba(255, 255, 255, 0.02);
-  --color-input-bg-focus: rgba(255, 255, 255, 0.04);
-  --color-input-border: rgba(255, 255, 255, 0.08);
+  /* Charcoal, from the room up */
+  --char-0: #0b0907;
+  --char-1: rgba(22, 18, 15, 0.86);
+  --char-2: #211c17;
+  --char-3: #2b251f;
 
-  /* Text & Content */
-  --color-text-pure: #ffffff;
-  --color-text-main: #f5f5f5;
-  --color-text-muted: rgba(255, 255, 255, 0.5);
-  --color-text-faint: rgba(255, 255, 255, 0.2);
+  /* Text in three tiers, each passes 4.5:1 contrast on charcoal */
+  --text: #eeeae5;
+  --muted: #b5ab9f;
+  --faint: #958b80;
 
-  /* Structural */
-  --color-border-faint: rgba(255, 255, 255, 0.03);
+  /* Colour */
+  --accent: var(--color-primary);
+  --ember-hot: #ffb072; /* for words that need attention */
+  --negative: #ec7262;
+  --negative-bg: rgba(236, 114, 98, 0.14);
+
+  /* Shape and motion */
+  --radius-card: 18px;
+  --radius-row: 14px;
+  --radius-pill: 999px;
+  --ease: cubic-bezier(0.22, 0.9, 0.24, 1); /* starts fast and settles gently, like a damped spring */
+
+  color-scheme: dark; /* dark scrollbars and form controls everywhere */
 }
 
 * {
@@ -38,7 +54,14 @@
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-text-main);
+  background-color: var(--char-0);
+  color: var(--text);
   font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Selected text takes the ember's colour */
+::selection {
+  background-color: rgba(229, 117, 61, 0.38);
+  color: #fff4e8;
 }

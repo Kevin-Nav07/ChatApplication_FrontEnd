@@ -1,85 +1,117 @@
-/* ==========================================================================
-   1. Minimal Navbar
-   ========================================================================== */
-
+/* The top bar: transparent, so the room and the fire show through it */
 .navbar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 100;
-    width: 100%;
+    position: relative;
+    z-index: 2;
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
-    padding: 2.25rem 4.5rem;
-    box-sizing: border-box;
-    background-color: transparent;
+    gap: 16px;
+    width: min(1280px, calc(100% - 64px));
+    margin: 0 auto;
+    padding: 24px 0;
 }
 
-.navBrand {
+/* The wordmark in the warm serif */
+.brand {
+    font-family: var(--serif);
+    font-size: 26px;
+    font-weight: 560;
+    letter-spacing: -0.02em;
+    font-variation-settings: 'opsz' 96;
+    color: var(--text);
+    text-decoration: none;
+}
+
+.actions {
     display: flex;
     align-items: center;
+    gap: 18px;
 }
 
-.brandTitle {
-    font-size: 1.5rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: -0.04em;
-    text-transform: lowercase;
-}
-
-.authActions {
-    display: flex;
+/* "Log in": a word with an ember underline that draws in on hover */
+.textLink {
+    position: relative;
+    display: inline-flex;
     align-items: center;
-    gap: 1.25rem;
-}
-
-.logInBtn {
-    background: transparent;
-    border: none;
-    color: rgba(255, 255, 255, 0.75);
-    font-size: 0.95rem;
+    min-height: 44px;
+    color: var(--muted);
+    font-size: 14px;
     font-weight: 500;
-    cursor: pointer;
-    padding: 0.5rem 0.75rem;
-    transition: color 0.15s ease;
+    text-decoration: none;
+    transition: color 0.2s;
 }
 
-.logInBtn:hover {
-    color: #ffffff;
+.textLink::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 10px;
+    height: 1.5px;
+    background-color: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
 }
 
-.signUpBtn {
-    background-color: transparent;
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    border-radius: 4px;
-    padding: 0.55rem 1.25rem;
-    font-size: 0.9rem;
+.textLink:hover {
+    color: var(--text);
+}
+
+.textLink:hover::after {
+    transform: scaleX(1);
+}
+
+/* "Create an account": the ember plate, the same as every primary action in the app */
+.plate {
+    display: inline-flex;
+    align-items: center;
+    height: 42px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background-color: var(--accent);
+    color: #1d0b03;
+    font-size: 14px;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    text-decoration: none;
+    transition: background-color 0.25s, transform 0.15s var(--ease);
 }
 
-.signUpBtn:hover {
-    border-color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.06);
+.plate:hover {
+    background-color: #ee8450;
+    transform: translateY(-1px);
 }
 
+.plate:active {
+    transform: scale(0.97);
+}
 
-@media (max-width: 900px) {
+.navbar :focus-visible {
+    outline: 2px solid var(--muted);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+@media (max-width: 640px) {
     .navbar {
-        padding: 1.5rem 2rem;
+        width: calc(100% - 32px);
+        padding: 16px 0;
     }
 
-
-}
-
-@media (max-width: 480px) {
-    .navbar {
-        padding: 1.25rem 1.25rem;
+    .actions {
+        gap: 10px;
     }
 
+    /* On a phone the hero's own button does this job, so the bar keeps only the sound and log in */
+    .plate {
+        display: none;
+    }
+}
 
+@media (prefers-reduced-motion: reduce) {
+    .textLink,
+    .textLink::after,
+    .plate {
+        transition: none;
+    }
 }

@@ -1,10 +1,10 @@
-/* Field level validation error message styling */
+/* A field's error, in the app's red, right under the line it belongs to */
 .errorMessage {
-    font-size: 0.75rem;
-    color: #f87171;
-    line-height: 1.2;
-    margin-top: 0.2rem;
     display: block;
+    margin-top: 4px;
+    font-size: 12.5px;
+    line-height: 1.35;
+    color: var(--negative, #ec7262);
     animation: fadeIn 0.15s ease-in-out;
 }
 
@@ -17,5 +17,11 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .errorMessage {
+        animation: none;
     }
 }

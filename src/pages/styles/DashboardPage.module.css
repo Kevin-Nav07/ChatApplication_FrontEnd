@@ -6,35 +6,8 @@
    and firelight catches the bottom edge of things because the fire is below.
    ========================================================================== */
 
-/* Full viewport layout. The design tokens live here so every screen inside the dashboard can use them */
+/* Full viewport layout. The design tokens it uses live on :root in index.css, shared with every page */
 .dashboardContainer {
-    /* Charcoal, from the room up */
-    --char-0: #0b0907;
-    --char-1: rgba(22, 18, 15, 0.86);
-    --char-2: #211c17;
-    --char-3: #2b251f;
-
-    /* Text in three tiers, each passes 4.5:1 contrast on charcoal */
-    --text: #eeeae5;
-    --muted: #b5ab9f;
-    --faint: #958b80;
-
-    /* Colour */
-    --accent: var(--color-primary, #e5753d); /* the brand ember */
-    --ember-hot: #ffb072; /* for words that need attention */
-    --negative: #ec7262;
-    --negative-bg: rgba(236, 114, 98, 0.14);
-
-    /* Type: the warm serif for headings, the brand face for everything else */
-    --serif: 'Fraunces', Georgia, serif;
-    --font: var(--font-body);
-
-    /* Shape and motion */
-    --radius-card: 18px;
-    --radius-row: 14px;
-    --radius-pill: 999px;
-    --ease: cubic-bezier(0.22, 0.9, 0.24, 1); /* starts fast and settles gently, like a damped spring */
-
     position: relative;
     z-index: 1; /* sits above the hearth's background canvas and below its spark canvas */
     width: 100vw;
@@ -56,7 +29,7 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* One focus ring for keyboard users. Inputs are skipped because their pill wrappers show the ring instead */
+/* One focus ring for keyboard users. Inputs are skipped because the charcoal line under each one turns ember on focus instead */
 .dashboardContainer :focus-visible:not(input) {
     outline: 2px solid var(--muted);
     outline-offset: 2px;
@@ -89,10 +62,9 @@
     pointer-events: none;
 }
 
-/* The product's mark, glowing with the fire's flicker */
+/* The product's mark in ember, flat: the fire on screen does the glowing, the logo does not */
 .brandIcon {
     color: var(--accent);
-    filter: drop-shadow(0 0 calc(7px * var(--flick, 1)) rgba(229, 117, 61, 0.55));
 }
 
 .navGroup {
@@ -102,8 +74,9 @@
     margin-top: 26px;
 }
 
-/* An icon with its name under it. The open tab is marked by brightness alone */
+/* An icon with its name under it. The open tab is brighter and marked by an ember tick on the rail's edge */
 .navButton {
+    position: relative;
     width: 62px;
     padding: 9px 0 7px;
     border: none;
@@ -133,18 +106,40 @@
     color: var(--text);
 }
 
-.navLabel {
-    font-size: 11px;
+/* The tick: a short hand drawn ember stroke across the rail's charcoal edge, like the marks on the Messages scale */
+.navButtonActive::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -11px;
+    width: 14px;
+    height: 1.5px;
+    background-color: var(--accent);
+    filter: url(#hearth-rough);
 }
 
-/* The signed in user's avatar, pushed to the bottom of the rail */
-.avatarRing {
+/* Labels in small capitals, the same voice as every other label in the app */
+.navLabel {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* The sound switch takes the free space above it, which pushes it and the avatar to the bottom of the rail */
+.railSound {
     margin-top: auto;
+    margin-bottom: 12px;
+}
+
+/* The signed in user's avatar, at the bottom of the rail: a charcoal lump like every other person in the app */
+.avatarRing {
     width: 38px;
     height: 38px;
-    border-radius: 50%;
+    border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%;
     border: none;
     background-color: var(--char-2);
+    box-shadow: inset 0 0 0 1.3px rgba(214, 198, 180, 0.18), inset 0 -4px 8px rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -161,422 +156,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. Messages: the conversation list, a charcoal panel
-   -------------------------------------------------------------------------- */
-.listPane {
-    composes: panel from '../../components/hearth/hearth.module.css';
-    width: 340px;
-    margin: 16px 0 16px 16px;
-    display: flex;
-    flex-direction: column;
-    flex-shrink: 0;
-    min-height: 0;
-}
-
-.listHeader {
-    padding: 20px 18px 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.listTitle {
-    font-family: var(--serif);
-    font-weight: 560;
-    font-size: 25px;
-    letter-spacing: -0.015em;
-    color: var(--text);
-    margin: 0;
-}
-
-/* Round compose button, set apart by a lighter fill */
-.composeBtn {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: none;
-    background-color: var(--char-2);
-    color: var(--text);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: background-color 0.15s, transform 0.1s ease-out;
-}
-
-.composeBtn:hover {
-    background-color: var(--char-3);
-}
-
-.composeBtn:active {
-    transform: scale(0.97);
-}
-
-.searchContainer {
-    padding: 0 18px 10px;
-}
-
-/* Pill field with a charcoal outline */
-.searchInputWrapper {
-    composes: rough from '../../components/hearth/hearth.module.css';
-    height: 40px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 0 16px;
-    border-radius: var(--radius-pill);
-    background-color: rgba(11, 9, 7, 0.6);
-    color: var(--faint);
-    transition: background-color 0.15s;
-}
-
-.searchInputWrapper:focus-within {
-    background-color: var(--char-2);
-}
-
-.searchInputWrapper:has(input:focus-visible),
-.dockInputWrapper:has(input:focus-visible) {
-    outline: 2px solid var(--muted);
-    outline-offset: 2px;
-}
-
-.searchInput {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-family: inherit;
-    font-size: 14px;
-}
-
-.searchInput::placeholder {
-    color: var(--faint);
-}
-
-/* Filter pills: the chosen one takes a lighter fill */
-.filterPillsRow {
-    padding: 0 18px 12px;
-    display: flex;
-    gap: 6px;
-}
-
-.filterPill {
-    height: 30px;
-    padding: 0 14px;
-    border-radius: var(--radius-pill);
-    border: none;
-    font-family: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    background: transparent;
-    color: var(--muted);
-    transition: background-color 0.15s, color 0.15s;
-}
-
-.filterPill:hover {
-    color: var(--text);
-}
-
-.filterPillActive,
-.filterPillActive:hover {
-    background-color: var(--char-3);
-    color: var(--text);
-    font-weight: 600;
-}
-
-.listBody {
-    flex: 1;
-    overflow-y: auto;
-    padding: 0 10px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-}
-
-/* One conversation */
-.chatItem {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 8px;
-    border-radius: var(--radius-row);
-    cursor: pointer;
-    transition: background-color 0.15s;
-    user-select: none;
-}
-
-.chatItem:hover {
-    background-color: rgba(43, 37, 31, 0.5);
-}
-
-.chatItemActive,
-.chatItemActive:hover {
-    background-color: rgba(43, 37, 31, 0.95);
-}
-
-/* The Ember Hearth channel's avatar: the flame on a coal that breathes with the fire */
-.chatAvatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #ffb072;
-    background: radial-gradient(circle at 50% 78%, #3d2214 0%, #110d0a 72%);
-    box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.7), 0 0 calc(20px * var(--flick, 1)) rgba(229, 117, 61, 0.45);
-}
-
-.chatDetails {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-}
-
-.chatTopRow {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.chatName {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-/* Fresh, so it is written in the hot ember colour */
-.chatTime {
-    font-size: 12px;
-    color: var(--ember-hot);
-    flex-shrink: 0;
-    font-variant-numeric: tabular-nums; /* every digit takes the same width, so times line up */
-}
-
-.chatBottomRow {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-}
-
-.chatSnippet {
-    font-size: 13px;
-    color: var(--muted);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    margin: 0;
-}
-
-/* Unread: a live spark */
-.unreadBadge {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background-color: var(--accent);
-    box-shadow: 0 0 calc(8px * var(--flick, 1)) rgba(229, 117, 61, 0.8);
-}
-
-/* --------------------------------------------------------------------------
-   3. Messages: the chat stage, open to the room
-   -------------------------------------------------------------------------- */
-.stagePane {
-    flex: 1;
-    min-width: 0;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 16px 28px 20px;
-}
-
-.stageHeader {
-    display: flex;
-    align-items: baseline;
-    gap: 12px;
-    padding: 12px 4px 14px;
-    flex-shrink: 0;
-}
-
-.stageHeaderTitle {
-    font-family: var(--serif);
-    font-size: 24px;
-    font-weight: 560;
-    letter-spacing: -0.01em;
-    color: var(--text);
-}
-
-.stageHeaderMeta {
-    font-size: 13px;
-    color: var(--faint);
-}
-
-/* The empty conversation: a small hearth burns above the words */
-.stageEmptyContent {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 2rem 0;
-    gap: 12px;
-}
-
-/* An empty box the hearth canvas lights: the fire burns in its centre */
-.hearthSpot {
-    width: 160px;
-    height: 140px;
-    margin-bottom: 4px;
-}
-
-.emptyHeading {
-    font-family: var(--serif);
-    font-size: 30px;
-    font-weight: 560;
-    letter-spacing: -0.015em;
-    line-height: 1.15;
-    color: var(--text);
-    margin: 0;
-}
-
-.emptySubtitle {
-    font-size: 14px;
-    line-height: 1.55;
-    color: var(--muted);
-    max-width: 380px;
-    margin: 0;
-}
-
-/* The screen's one primary button: a light pill with dark text */
-.primaryPillBtn {
-    margin-top: 10px;
-    height: 42px;
-    padding: 0 24px;
-    border-radius: var(--radius-pill);
-    border: none;
-    background-color: var(--text);
-    color: var(--char-0);
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background-color 0.15s, transform 0.1s ease-out;
-}
-
-.primaryPillBtn:hover {
-    background-color: #ffffff;
-}
-
-.primaryPillBtn:active {
-    transform: scale(0.97);
-}
-
-/* Bottom message composer */
-.chatInputDock {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding-top: 10px;
-    flex-shrink: 0;
-}
-
-.dockInputWrapper {
-    composes: rough from '../../components/hearth/hearth.module.css';
-    flex: 1;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    padding: 0 18px;
-    border-radius: var(--radius-pill);
-    background-color: rgba(22, 18, 15, 0.96); /* nearly solid, so embers drifting behind it never sit under the text */
-    box-shadow: inset 0 -1px 0 rgba(255, 140, 60, calc(0.18 * var(--flick, 1))); /* firelight from below on its lower edge */
-    transition: background-color 0.15s;
-}
-
-.dockInputWrapper:focus-within {
-    background-color: var(--char-2);
-}
-
-.dockInput {
-    flex: 1;
-    min-width: 0;
-    background: transparent;
-    border: none;
-    outline: none;
-    color: var(--text);
-    font-size: 14.5px;
-    font-family: inherit;
-}
-
-.dockInput::placeholder {
-    color: var(--faint);
-}
-
-.dockSendBtn {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: none;
-    background-color: var(--text);
-    color: var(--char-0);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: background-color 0.15s, transform 0.1s ease-out;
-}
-
-.dockSendBtn:hover {
-    background-color: #ffffff;
-}
-
-.dockSendBtn:active {
-    transform: scale(0.95);
-}
-
-/* --------------------------------------------------------------------------
-   4. Settings placeholder
-   -------------------------------------------------------------------------- */
-.settingsPane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    text-align: center;
-    padding: 2rem;
-}
-
-.settingsTitle {
-    font-family: var(--serif);
-    font-size: 32px;
-    font-weight: 560;
-    letter-spacing: -0.015em;
-    color: var(--text);
-    margin: 0;
-}
-
-.settingsText {
-    font-size: 14px;
-    color: var(--muted);
-    margin: 0;
-}
-
-/* --------------------------------------------------------------------------
-   5. Phones: the rail becomes a bar along the bottom, panes stack
+   2. Phones: the rail becomes a bar along the bottom, panes stack
    -------------------------------------------------------------------------- */
 @media (max-width: 760px) {
     .dashboardContainer {
@@ -607,7 +187,8 @@
     }
 
     .brandIcon,
-    .avatarRing {
+    .avatarRing,
+    .railSound {
         display: none;
     }
 
@@ -618,16 +199,12 @@
         margin: 0;
     }
 
-    .listPane {
-        width: auto;
-        max-height: 42vh;
-        margin: 12px;
-    }
-
-    .stagePane {
-        flex: 1;
-        min-height: 0;
-        padding: 0 14px 12px;
+    /* The bar's charcoal edge is along its top here, so the open tab's tick crosses that edge instead */
+    .navButtonActive::after {
+        top: -8px;
+        right: auto;
+        left: 50%;
+        margin-left: -7px;
     }
 }
 
@@ -638,11 +215,7 @@
     }
 
     .navButton,
-    .avatarRing,
-    .composeBtn,
-    .chatItem,
-    .primaryPillBtn,
-    .dockSendBtn {
+    .avatarRing {
         transition: none;
         transform: none;
     }

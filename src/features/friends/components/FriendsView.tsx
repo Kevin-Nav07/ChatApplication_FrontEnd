@@ -17,11 +17,12 @@ import {
     getPendingRequests,
     sendFriendRequest
 } from '../../../services/friendService';
+import { createRoom } from '../../../services/roomService';
 
 // Props definition for the top-level FriendsView feature component
 interface FriendsViewProps {
-    // Optional callback when a user triggers direct messaging with a friend
-    onDirectMessage?: (friend: Friend) => void;
+    // Called with the direct room's id once "Message" on a friend has found or created that room
+    onOpenRoom?: (roomId: number) => void;
 }
 
 // Everything the Friends page shows, already split into the three lists the UI renders
@@ -71,7 +72,7 @@ function plural(count: number, word: string): string {
 // Master component for the Friends feature: the circle around the fire on the left, everyone as a list on the right
 // It owns all friend data. After every change it reloads both lists from the server instead of editing them by hand,
 // so what is on screen always matches the database
-export default function FriendsView({ onDirectMessage }: FriendsViewProps): React.JSX.Element {
+export default function FriendsView({ onOpenRoom }: FriendsViewProps): React.JSX.Element {
     // State holding confirmed friends
     const [friends, setFriends] = useState<Friend[]>([]);
     // State holding incoming friend requests
@@ -187,6 +188,19 @@ export default function FriendsView({ onDirectMessage }: FriendsViewProps): Reac
         runAction(() => deleteFriendship(friendshipId), { burnKey: `f${friendshipId}` });
     };
 
+    // Opens the one-to-one chat with a friend. The server returns the existing direct room if there already is one
+    // (200) or creates it (201), so this is safe to click any number of times and never makes a duplicate conversation
+    const handleMessageFriend = async (friend: Friend): Promise<void> => {
+        setErrorMessage(null);
+        try {
+            const room = await createRoom({ room_type: 'direct', users: [friend.userId] });
+            onOpenRoom?.(room.id); // ?. only calls it when the parent passed a callback
+        }
+        catch (error: unknown) {
+            setErrorMessage(getErrorMessage(error));
+        }
+    };
+
     // A click on a coal in the circle finds that friend in the list
     const handleSeatClick = (friendshipId: number): void => {
         glowRow(document.getElementById(`friend-row-${friendshipId}`), hearth.reducedMotion);
@@ -224,10 +238,9 @@ export default function FriendsView({ onDirectMessage }: FriendsViewProps): Reac
                         <button
                             type="button"
                             className={styles.errorBannerClose}
-                            aria-label="Dismiss error"
                             onClick={() => setErrorMessage(null)}
                         >
-                            ×
+                            Dismiss
                         </button>
                     </div>
                 )}
@@ -318,7 +331,7 @@ export default function FriendsView({ onDirectMessage }: FriendsViewProps): Reac
                             <FriendItem
                                 key={friend.friendshipId}
                                 friend={friend}
-                                onSendMessage={onDirectMessage}
+                                onSendMessage={(f) => { void handleMessageFriend(f); }} // void: the promise handles its own errors
                                 onRemove={handleRemoveFriend}
                                 disabled={isMutating}
                                 highlighted={hoveredKey === `f${friend.friendshipId}`}

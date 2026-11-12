@@ -30,6 +30,30 @@
     pointer-events: none;
 }
 
+/* Warm light laid over the interface from wherever the fire is. HearthProvider sets --fx, --fy and --fr (the fire's
+   position and reach) and the opacity every other frame, so the light follows the fire and flickers with it.
+   It is a faint wash, not a glow: text near the fire warms a little, nothing far away is touched */
+.firelight {
+    position: fixed;
+    inset: 0;
+    z-index: 29;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(circle var(--fr, 600px) at var(--fx, 50%) var(--fy, 110%), rgba(255, 150, 80, 0.11), rgba(255, 120, 50, 0.04) 45%, rgba(0, 0, 0, 0) 75%);
+}
+
+/* Large type lit from below by the fire: the bottoms of the letters run warm, the tops stay pale, and the warm band
+   rises and falls with the flicker (--flick is set by HearthProvider). A shadow cast upward, away from the fire, gives depth.
+   Other modules use it with composes: lit from '.../hearth.module.css' */
+.lit {
+    --warm-edge: calc(30% + (var(--flick, 1) - 1) * 110%);
+    background-image: linear-gradient(to top, #ffbd85 0%, #f3dcc6 var(--warm-edge), #eeeae5 calc(var(--warm-edge) + 30%));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    filter: drop-shadow(0 -3px 10px rgba(0, 0, 0, 0.55));
+}
+
 /* Fine ash grain over everything, like paper that has sat near a fire. The noise is an SVG drawn inside a data URL */
 .grain {
     position: fixed;

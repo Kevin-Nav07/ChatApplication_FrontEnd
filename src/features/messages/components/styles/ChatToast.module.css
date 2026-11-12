@@ -1,0 +1,122 @@
+/* Pins the note to the top right corner. Kept separate from .toast, because the rough edge style it composes
+   sets position: relative and would win over position: fixed if both were on one element */
+.dock {
+    position: fixed;
+    top: 22px;
+    right: 26px;
+    z-index: 1000;
+    width: 320px;
+    max-width: calc(100vw - 40px);
+}
+
+/* A small charcoal note with a rough hand drawn edge like the other panels */
+.toast {
+    composes: rough from '../../../../components/hearth/hearth.module.css';
+    display: flex;
+    align-items: stretch;
+    border-radius: 16px;
+    background-color: rgba(20, 16, 13, 0.97);
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+    animation: toastIn 0.5s var(--ease, ease-out) both;
+    transition: transform 0.2s var(--ease, ease-out);
+}
+
+.toast:hover {
+    transform: translateY(-2px);
+}
+
+@keyframes toastIn {
+    from { opacity: 0; transform: translateX(26px); }
+    to { opacity: 1; transform: none; }
+}
+
+/* The clickable body: room, sender, and the message */
+.open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 4px 14px 16px;
+    border: none;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.room {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint, #958b80);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sender {
+    font-family: var(--serif, Georgia, serif);
+    font-style: italic;
+    font-size: 17px;
+    color: var(--ember-hot, #ffb072);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.snippet {
+    margin-top: 2px;
+    font-size: 13.5px;
+    color: var(--text, #eeeae5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.close {
+    flex-shrink: 0;
+    width: 46px;
+    border: none;
+    background: none;
+    color: var(--faint, #958b80);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close:hover {
+    color: var(--text, #eeeae5);
+}
+
+/* The heat line along the bottom: full and hot when the note arrives, short and ash when it leaves */
+.burn {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 0;
+    height: 2px;
+    transform-origin: left;
+    animation: burnDown var(--toast-ms, 4500ms) linear both;
+}
+
+@keyframes burnDown {
+    0% { transform: scaleX(1); background-color: #ffb072; }
+    50% { background-color: #e5753d; }
+    100% { transform: scaleX(0); background-color: #5a3a2a; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .toast,
+    .burn {
+        animation: none;
+    }
+
+    .toast:hover {
+        transform: none;
+    }
+}

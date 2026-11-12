@@ -1,15 +1,15 @@
-/* Backdrop dark overlay covering the entire viewport */
+/* The room dims behind the sheet */
 .backdrop {
     position: fixed;
     inset: 0;
     z-index: 100;
-    background-color: rgba(6, 5, 4, 0.78);
-    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 16px;
-    animation: fadeIn 0.2s ease-out;
+    background-color: rgba(6, 5, 4, 0.76);
+    backdrop-filter: blur(5px);
+    animation: fadeIn 0.25s ease-out;
 }
 
 @keyframes fadeIn {
@@ -17,220 +17,276 @@
     to { opacity: 1; }
 }
 
-/* Modal window container card */
-.modalCard {
-    width: 480px;
+/* The sheet: a charcoal panel with a rough drawn edge, firelight on its lower edge */
+.sheet {
+    composes: rough from '../../../components/hearth/hearth.module.css';
+    width: 600px;
     max-width: 100%;
-    background-color: #171310;
-    border: 1px solid rgba(214, 198, 180, 0.18);
-    border-radius: 16px;
-    padding: 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 18px;
-    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(229, 117, 61, 0.15);
-    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: calc(100vh - 32px);
+    overflow-y: auto;
+    padding: 30px 34px 26px;
+    border-radius: 22px;
+    background-color: rgba(20, 16, 13, 0.98);
+    box-shadow: 0 30px 70px rgba(0, 0, 0, 0.7), inset 0 -1px 0 rgba(255, 140, 60, calc(0.25 * var(--flick, 1)));
+    animation: rise 0.45s cubic-bezier(0.22, 0.9, 0.24, 1);
 }
 
-@keyframes slideUp {
-    from { transform: translateY(12px) scale(0.98); opacity: 0; }
-    to { transform: translateY(0) scale(1); opacity: 1; }
+@keyframes rise {
+    from { opacity: 0; transform: translateY(14px) scale(0.985); }
+    to { opacity: 1; transform: none; }
 }
 
-/* Modal header with title and close button */
 .header {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
+    gap: 16px;
 }
 
 .title {
-    font-size: 18px;
-    font-weight: 600;
-    color: var(--text, #f0eae1);
     margin: 0;
+    font-family: var(--serif);
+    font-weight: 540;
+    font-size: 32px;
+    letter-spacing: -0.018em;
+    color: var(--text);
+}
+
+.subtitle {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--muted);
 }
 
 .closeBtn {
-    background: transparent;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
     border: none;
-    color: var(--muted, #9c8e82);
+    border-radius: 12px;
+    background: none;
+    color: var(--muted);
     cursor: pointer;
-    padding: 4px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: color 0.15s, background-color 0.15s;
+    transition: color 0.2s, background-color 0.2s;
 }
 
 .closeBtn:hover {
-    color: var(--text, #f0eae1);
-    background-color: rgba(214, 198, 180, 0.08);
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Form input group */
-.fieldGroup {
+.form {
     display: flex;
     flex-direction: column;
-    gap: 8px;
 }
 
+/* Field labels in small capitals */
 .label {
-    font-size: 13px;
+    display: block;
+    margin-top: 24px;
+    font-size: 10.5px;
     font-weight: 600;
-    color: var(--muted, #9c8e82);
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
+    color: var(--muted);
 }
 
-.textInput {
-    height: 40px;
-    background-color: rgba(9, 7, 5, 0.7);
-    border: 1px solid rgba(214, 198, 180, 0.2);
-    border-radius: 8px;
-    padding: 0 14px;
-    color: var(--text, #f0eae1);
-    font-size: 14px;
-    font-family: inherit;
+/* The name is written on one charcoal line in the serif, the way the room will be titled */
+.nameInput {
+    width: 100%;
+    padding: 8px 0 10px;
+    border: none;
+    border-bottom: 1.3px solid rgba(214, 198, 180, 0.2);
     outline: none;
-    transition: border-color 0.15s, background-color 0.15s;
+    background: none;
+    color: var(--text);
+    font-family: var(--serif);
+    font-size: 22px;
+    transition: border-color 0.25s;
 }
 
-.textInput:focus {
-    border-color: var(--accent, #e5753d);
-    background-color: rgba(9, 7, 5, 0.9);
+.nameInput:focus {
+    border-bottom-color: rgba(229, 117, 61, 0.7);
 }
 
-/* Scrollable container for friends */
-.friendsList {
-    max-height: 220px;
+.nameInput::placeholder {
+    color: #7d746b;
+    font-style: italic;
+}
+
+/* The circle: a wide area twice as wide as tall. Friends are placed on it by seatPosition() */
+.arc {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 2 / 1;
+    margin-top: 34px;
+}
+
+/* A low warm haze where the fire would be, at the bottom middle of the arc. A soft gradient, not a point of light */
+.glow {
+    position: absolute;
+    left: 50%;
+    top: 92%;
+    width: 300px;
+    height: 150px;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(closest-side, rgba(255, 138, 61, calc(0.32 * var(--flick, 1))), rgba(178, 69, 26, 0.12) 55%, rgba(0, 0, 0, 0));
+    pointer-events: none;
+}
+
+/* With many friends, they sit in rows instead */
+.rows {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+    max-height: 260px;
     overflow-y: auto;
-    background-color: rgba(9, 7, 5, 0.5);
-    border: 1px solid rgba(214, 198, 180, 0.14);
-    border-radius: 8px;
-    padding: 6px;
+}
+
+/* One friend: a coal and their name. On the arc it glides between the outer and inner arcs */
+.seat {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 6px;
+    padding: 4px;
+    border: none;
+    border-radius: 12px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    cursor: pointer;
+    transition: color 0.3s;
 }
 
-/* Individual selectable friend row */
-.friendRow {
+.arc .seat {
+    position: absolute;
+    width: 92px;
+    transform: translate(-50%, -24px); /* centres the coal, not the whole button, on its point of the arc */
+    transition: left 0.6s cubic-bezier(0.22, 0.9, 0.24, 1), top 0.6s cubic-bezier(0.22, 0.9, 0.24, 1), color 0.3s;
+}
+
+.seat:hover {
+    color: var(--text);
+}
+
+/* A coal waits cold and grey; chosen, it takes the warmth it has on the Friends screen */
+.coal {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #2b251f;
+    color: var(--faint);
+    box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.4), inset 0 0 0 1.3px rgba(214, 198, 180, 0.14);
+    transition: background-color 0.45s ease, color 0.45s ease, box-shadow 0.45s ease, transform 0.15s ease;
+}
+
+.seat:hover .coal {
+    transform: translateY(-2px);
+}
+
+.seat:active .coal {
+    transform: scale(0.94);
+}
+
+.seatChosen {
+    color: var(--text);
+}
+
+.seatChosen .coal {
+    background-color: var(--warm);
+    color: #2a0f04;
+    box-shadow: inset 0 -4px 7px rgba(110, 30, 8, 0.45), inset 0 0 0 1.3px rgba(255, 220, 180, 0.8);
+}
+
+.seatName {
+    max-width: 100%;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.noFriends {
+    position: absolute;
+    inset: auto 0 30%;
+    margin: 0;
+    text-align: center;
+    font-size: 13.5px;
+    color: var(--faint);
+}
+
+.rows .noFriends {
+    position: static;
+}
+
+.errorMessage {
+    margin: 16px 0 0;
+    font-size: 13px;
+    color: var(--negative);
+}
+
+.footer {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    user-select: none;
-    transition: background-color 0.15s;
-}
-
-.friendRow:hover {
-    background-color: rgba(214, 198, 180, 0.07);
-}
-
-.friendRowSelected {
-    background-color: rgba(229, 117, 61, 0.18);
-}
-
-.friendRowSelected:hover {
-    background-color: rgba(229, 117, 61, 0.24);
-}
-
-.friendLeft {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.avatarMini {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background-color: #2b231d;
-    color: var(--accent, #e5753d);
-    font-size: 12px;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.friendName {
-    font-size: 14px;
-    color: var(--text, #f0eae1);
-}
-
-/* Checkbox indicator */
-.checkboxBox {
-    width: 18px;
-    height: 18px;
-    border-radius: 4px;
-    border: 1.5px solid rgba(214, 198, 180, 0.3);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.15s, border-color 0.15s;
-}
-
-.checkboxChecked {
-    background-color: var(--accent, #e5753d);
-    border-color: var(--accent, #e5753d);
-    color: #fff;
-}
-
-/* Error message banner */
-.errorMessage {
-    color: #ff7070;
-    font-size: 13px;
-    margin: 0;
-}
-
-/* Bottom action buttons row */
-.actionsRow {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
     gap: 12px;
-    margin-top: 6px;
+    margin-top: 26px;
+}
+
+.count {
+    font-size: 13px;
+    color: var(--faint);
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
 }
 
 .cancelBtn {
-    height: 36px;
-    padding: 0 16px;
-    background: transparent;
-    border: 1px solid rgba(214, 198, 180, 0.2);
+    height: 44px;
+    padding: 0 18px;
+    border: none;
     border-radius: var(--radius-pill, 999px);
-    color: var(--muted, #9c8e82);
-    font-size: 13px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
     cursor: pointer;
-    font-family: inherit;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.2s, background-color 0.2s;
 }
 
 .cancelBtn:hover {
-    color: var(--text, #f0eae1);
-    border-color: rgba(214, 198, 180, 0.4);
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 .submitBtn {
-    height: 36px;
-    padding: 0 20px;
-    background-color: var(--accent, #e5753d);
+    height: 44px;
+    padding: 0 22px;
     border: none;
     border-radius: var(--radius-pill, 999px);
-    color: #ffffff;
-    font-size: 13px;
+    background-color: var(--accent);
+    color: #1d0b03;
+    font: inherit;
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    font-family: inherit;
-    transition: filter 0.15s, transform 0.1s;
+    transition: background-color 0.2s, transform 0.15s;
 }
 
 .submitBtn:hover {
-    filter: brightness(1.1);
+    background-color: #ee8450;
+    transform: translateY(-1px);
 }
 
 .submitBtn:active {
@@ -238,9 +294,31 @@
 }
 
 .submitBtn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    filter: none;
+    background-color: #3a2c22;
+    color: #8e8276;
     transform: none;
+    cursor: not-allowed;
 }
 
+@media (max-width: 520px) {
+    .arc .seat {
+        width: 70px;
+    }
+
+    .coal {
+        width: 34px;
+        height: 34px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .backdrop,
+    .sheet {
+        animation: none;
+    }
+
+    .arc .seat,
+    .coal {
+        transition: none;
+    }
+}

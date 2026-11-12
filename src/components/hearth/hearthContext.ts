@@ -10,6 +10,12 @@ export interface HearthApi {
     emberArc: (toX: number, toY: number, count?: number) => void;
     // One frame of sparks rising and ash falling from an element that is burning away
     scorch: (rect: DOMRect) => void;
+    // Makes the fire on screen flare up for about a second, as if it was just fed. Used when a message arrives
+    flare: () => void;
+    // Whether the fire's crackle is switched on. Off until the user turns it on; the choice is remembered
+    soundOn: boolean;
+    // Switches the fire's sound on or off
+    toggleSound: () => void;
 }
 
 // Holds the API for every component below a HearthProvider; null means no provider is mounted

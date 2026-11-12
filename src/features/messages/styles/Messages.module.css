@@ -1,0 +1,828 @@
+/* ==========================================================================
+   Messages: everything near the fire is warm; things rise and cool as they age
+   Colours, fonts and radii come from the tokens on .dashboardContainer
+   (DashboardPage.module.css). The fire itself is drawn by HearthProvider on a
+   canvas behind this screen, along the element marked data-hearth-fire.
+   ========================================================================== */
+
+/* How long a full cooling takes; heat.ts uses the same number for the negative delays */
+.room {
+    --cool-duration: 3600s;
+    --axis: 22px; /* the centre of the cooling scale's axis, measured from the left of each row */
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+}
+
+/* Pins a load error to the top of the room so the layout does not move (split from .loadError for the same reason as the composer) */
+.errorDock {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+}
+
+.loadError {
+    composes: rough from '../../../components/hearth/hearth.module.css';
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 8px 8px 16px;
+    border-radius: 12px;
+    background-color: rgba(20, 16, 13, 0.97);
+    color: var(--negative);
+    font-size: 13px;
+}
+
+/* A quiet text button used to dismiss errors */
+.textBtn {
+    min-height: 32px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.textBtn:hover {
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* --------------------------------------------------------------------------
+   1. The ledger: title, search, filter, and the cooling scale of rooms
+   -------------------------------------------------------------------------- */
+.ledger {
+    position: relative;
+    z-index: 2;
+    width: 340px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 34px 20px 0 30px;
+}
+
+.ledgerHead {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.ledgerTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
+    font-family: var(--serif);
+    font-weight: 560;
+    font-size: 34px;
+    letter-spacing: -0.018em;
+    font-variation-settings: 'opsz' 96;
+    margin: 0;
+}
+
+/* "New group": text with a small charcoal lump holding the plus */
+.newGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 44px;
+    padding: 0 2px;
+    border: none;
+    background: none;
+    color: var(--muted);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.newGroupMark {
+    width: 26px;
+    height: 24px;
+    border-radius: 48% 52% 44% 56% / 55% 45% 55% 45%;
+    display: grid;
+    place-items: center;
+    background-color: var(--char-2);
+    color: var(--ember-hot);
+    transition: background-color 0.25s, transform 0.15s var(--ease);
+}
+
+.newGroup:hover {
+    color: var(--text);
+}
+
+.newGroup:hover .newGroupMark {
+    background-color: #3a2a1f;
+}
+
+.newGroup:active .newGroupMark {
+    transform: scale(0.9);
+}
+
+/* Search: a single charcoal line to write on, no box */
+.search {
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 2px 8px;
+    color: var(--faint);
+    position: relative;
+}
+
+.search::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.3px;
+    background-color: rgba(214, 198, 180, 0.2);
+    filter: url(#hearth-rough);
+    transition: background-color 0.25s;
+}
+
+.search:focus-within::after {
+    background-color: rgba(229, 117, 61, 0.7);
+}
+
+.searchInput {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 0;
+    border: none;
+    outline: none;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 14px;
+}
+
+.searchInput::placeholder {
+    color: var(--faint);
+}
+
+/* All and Unread: words with an ember underline that draws in */
+.tabs {
+    display: flex;
+    gap: 22px;
+    margin-top: 12px;
+}
+
+.tab {
+    position: relative;
+    min-height: 36px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--faint);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.tab::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 5px;
+    height: 1.5px;
+    background-color: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s var(--ease);
+}
+
+.tab:hover {
+    color: var(--muted);
+}
+
+.tab:hover::after {
+    transform: scaleX(0.35);
+}
+
+.tabOn,
+.tabOn:hover {
+    color: var(--text);
+}
+
+.tabOn::after,
+.tabOn:hover::after {
+    transform: scaleX(1);
+}
+
+.tabCount {
+    margin-left: 6px;
+    color: var(--ember-hot);
+    font-variant-numeric: tabular-nums;
+}
+
+/* The scale scrolls. column-reverse makes it start at the bottom, where "now" is, and grow upward */
+.scale {
+    flex: 1;
+    min-height: 0;
+    margin: 6px 0 0 -10px;
+    display: flex;
+    flex-direction: column-reverse;
+    overflow-y: auto;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 36px);
+}
+
+/* The track holds the axis and the entries. flex-grow lets it fill the scale, so the axis always reaches the top */
+.track {
+    position: relative;
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column-reverse;
+    padding: 40px 0 26px 10px;
+}
+
+/* The axis: a hand drawn charcoal line, ash at the top and ember at the bottom where it meets the fire */
+.track::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(10px + var(--axis));
+    width: 1.5px;
+    background: linear-gradient(to bottom, rgba(214, 198, 180, 0.08), rgba(214, 198, 180, 0.2) 55%, rgba(229, 117, 61, 0.55) 90%, rgba(255, 176, 114, 0.8));
+    filter: url(#hearth-rough);
+}
+
+/* A mark on the scale: a short charcoal tick across the axis and its label */
+.mark {
+    position: relative;
+    display: flex;
+    align-items: center;
+    height: 18px;
+    padding-left: calc(var(--axis) + 22px);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.mark::before {
+    content: "";
+    position: absolute;
+    left: calc(var(--axis) - 6px);
+    top: 50%;
+    width: 13px;
+    height: 1.3px;
+    background-color: rgba(214, 198, 180, 0.3);
+    filter: url(#hearth-rough);
+}
+
+.markNow {
+    color: var(--ember-hot);
+}
+
+.markNow::before {
+    background-color: rgba(255, 176, 114, 0.8);
+}
+
+/* One room on the scale. Its coal sits on the axis, its words to the right */
+.entry {
+    position: relative;
+    display: grid;
+    grid-template-columns: calc(var(--axis) * 2) minmax(0, 1fr);
+    gap: 12px;
+    align-items: center;
+    width: 100%;
+    padding: 8px 10px 8px 0;
+    border: none;
+    border-radius: var(--radius-row);
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.25s, transform 0.15s var(--ease);
+}
+
+.entry:hover {
+    background-color: rgba(255, 220, 190, 0.035);
+}
+
+.entry:active {
+    transform: translateY(1px);
+}
+
+/* The open room: a warmer plate, and a hairline that reaches across toward the conversation */
+.entryOn,
+.entryOn:hover {
+    background-color: rgba(255, 220, 190, 0.06);
+}
+
+.entryOn::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -20px;
+    width: 30px;
+    height: 1.3px;
+    background: linear-gradient(to right, rgba(229, 117, 61, 0.6), rgba(229, 117, 61, 0));
+    filter: url(#hearth-rough);
+}
+
+/* The coal's seat on the axis */
+.seat {
+    position: relative;
+    width: 36px;
+    height: 34px;
+    justify-self: center;
+}
+
+/* A coal: an irregular lump that cools from ember to charcoal. The shape comes from lumpShape() in heat.ts.
+   Heat is shown by the coal's own colour and the light inside it, never by a halo around it */
+.coal {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 14px;
+    font-weight: 600;
+    background-color: #2b251f;
+    color: var(--muted);
+    animation: coolCoal var(--cool-duration) linear var(--cool-delay, -3600s) both;
+}
+
+/* A group shows a second, smaller coal behind and above the first */
+.coalBack {
+    transform: translate(9px, -7px) scale(0.62);
+}
+
+.seatGroup .coal:not(.coalBack) {
+    transform: translate(-3px, 3px) scale(0.84);
+    outline: 3px solid #0e0b09; /* a thin gap of dark ground between the two coals */
+}
+
+@keyframes coolCoal {
+    0% { background-color: #ffc98f; color: #3a1604; box-shadow: inset 0 -4px 7px rgba(150, 50, 10, 0.45), inset 0 0 0 1.3px rgba(255, 228, 190, 0.9); }
+    5% { background-color: #f39050; color: #2a1005; box-shadow: inset 0 -4px 7px rgba(110, 30, 8, 0.5), inset 0 0 0 1.3px rgba(255, 196, 140, 0.7); }
+    20% { background-color: #b44a22; color: #fde3cf; box-shadow: inset 0 -4px 7px rgba(40, 10, 4, 0.5), inset 0 0 0 1.3px rgba(229, 117, 61, 0.5); }
+    50% { background-color: #57301f; color: #ecd2be; box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.45), inset 0 0 0 1.3px rgba(150, 80, 50, 0.4); }
+    100% { background-color: #2b251f; color: #b5ab9f; box-shadow: inset 0 -4px 7px rgba(0, 0, 0, 0.4), inset 0 0 0 1.3px rgba(214, 198, 180, 0.12); }
+}
+
+/* An unread room's coal flickers, the way a coal does when air reaches it */
+.entryUnread .seat {
+    animation: coalFlick 2.8s infinite;
+}
+
+@keyframes coalFlick {
+    0%, 100% { filter: brightness(1); }
+    42% { filter: brightness(1.35); }
+    58% { filter: brightness(0.95); }
+    76% { filter: brightness(1.2); }
+}
+
+/* A group created a moment ago catches: it arrives as cold charcoal, then flares */
+.entryCatching .seat {
+    animation: catchCoal 1.4s var(--ease) both;
+}
+
+/* The room a notification is about flares once in the list at the same moment */
+.entryFlash .seat {
+    animation: flashCoal 1s var(--ease) both;
+}
+
+@keyframes catchCoal {
+    0% { filter: grayscale(1) brightness(0.4); transform: scale(0.8); }
+    55% { filter: grayscale(1) brightness(0.5); transform: scale(1); }
+    72% { filter: grayscale(0) brightness(1.9); transform: scale(1.2); }
+    100% { filter: none; transform: none; }
+}
+
+@keyframes flashCoal {
+    0% { filter: brightness(1); transform: scale(1); }
+    30% { filter: brightness(1.9); transform: scale(1.16); }
+    100% { filter: brightness(1); transform: none; }
+}
+
+.entryText {
+    display: block;
+    min-width: 0;
+}
+
+.entryTop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.entryName {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.entryWhen {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--faint);
+    font-variant-numeric: tabular-nums;
+}
+
+.entryPreview {
+    display: block;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Unread is said in words and warmth: the name runs hot, the preview brightens, and the time becomes "new" */
+.entryUnread .entryName {
+    font-weight: 600;
+    color: var(--ember-hot);
+}
+
+.entryUnread .entryPreview {
+    color: var(--text);
+}
+
+.entryUnread .entryWhen {
+    color: var(--ember-hot);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.listEmpty {
+    margin: 0;
+    padding: 24px 0 24px calc(var(--axis) * 2 + 22px);
+    font-size: 13px;
+    color: var(--faint);
+}
+
+/* --------------------------------------------------------------------------
+   2. The stage: masthead, conversation, the ember bed and the composer
+   -------------------------------------------------------------------------- */
+.stage {
+    --column: min(820px, calc(100% - 64px)); /* the conversation's width, shared by the masthead and the thread */
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* The masthead: the room's name set large, two facts in small capitals, and a charcoal rule the spine hangs from */
+.masthead {
+    position: relative;
+    z-index: 3;
+    width: var(--column);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 34px 0 16px;
+    flex-shrink: 0;
+}
+
+.masthead::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.4px;
+    background: linear-gradient(to right, rgba(214, 198, 180, 0), rgba(214, 198, 180, 0.24) 18%, rgba(214, 198, 180, 0.24) 82%, rgba(214, 198, 180, 0));
+    filter: url(#hearth-rough);
+}
+
+.mastName {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
+    min-width: 0;
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 480;
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variation-settings: 'opsz' 144;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-bottom: 4px; /* keeps descenders clear of the overflow clip */
+}
+
+.mastMeta {
+    flex-shrink: 0;
+    margin: 0 0 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+}
+
+.mastActive {
+    color: var(--muted);
+}
+
+/* While the connection is down, the second line says so in ember and breathes slowly */
+.mastStatus {
+    color: var(--ember-hot);
+    animation: statusBreath 2.4s ease-in-out infinite;
+}
+
+@keyframes statusBreath {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* An empty or loading room: the words sit low, just above the smouldering bed */
+.quiet {
+    flex: 1;
+    width: var(--column);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 210px;
+}
+
+.quietTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
+    margin: 0;
+    font-family: var(--serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 34px;
+    letter-spacing: -0.015em;
+}
+
+.quietText {
+    margin: 10px 0 0;
+    font-size: 14.5px;
+    color: var(--muted);
+}
+
+/* The long low fire along the bottom. The element is empty; the canvas draws the fire along its bottom edge */
+.bed {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 140px;
+    pointer-events: none;
+}
+
+/* Why the last message failed, sitting just above the composer */
+.sendError {
+    position: absolute;
+    z-index: 4;
+    left: 50%;
+    bottom: 108px;
+    transform: translateX(-50%);
+    width: min(640px, calc(100% - 48px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font-size: 13px;
+    color: var(--negative);
+}
+
+/* Places the composer just above the fire. Kept apart from .composer, because the rough edge style it composes
+   sets position: relative and would win over position: absolute if both were on one element */
+.composerDock {
+    position: absolute;
+    z-index: 3;
+    left: 50%;
+    bottom: 30px;
+    transform: translateX(-50%);
+    width: min(660px, calc(100% - 48px));
+}
+
+/* The composer: a charcoal slab resting just above the fire, firelight catching its lower edge */
+.composer {
+    composes: rough from '../../../components/hearth/hearth.module.css';
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 8px 8px 8px 20px;
+    border-radius: 18px;
+    background-color: rgba(20, 16, 13, 0.97);
+    box-shadow: 0 24px 50px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(255, 140, 60, calc(0.3 * var(--flick, 1)));
+}
+
+.composer:focus-within::before {
+    border-color: rgba(229, 117, 61, 0.55);
+}
+
+/* Who the message goes to, in small capitals, divided from the writing by a short charcoal stroke */
+.composerTo {
+    position: relative;
+    flex-shrink: 0;
+    max-width: 150px;
+    padding-right: 14px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.composerTo::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: -4px;
+    bottom: -4px;
+    width: 1.3px;
+    background-color: rgba(214, 198, 180, 0.2);
+    filter: url(#hearth-rough);
+}
+
+.composerInput {
+    flex: 1;
+    min-width: 0;
+    padding: 12px 0;
+    border: none;
+    outline: none;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    font-size: 15.5px;
+}
+
+.composerInput::placeholder {
+    color: var(--faint);
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+}
+
+/* Send: a cold charcoal plate that heats to ember once there is something to send */
+.send {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 16px 0 18px;
+    border: none;
+    border-radius: 12px;
+    background-color: var(--char-3);
+    color: var(--faint);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: default;
+    transition: background-color 0.35s var(--ease), color 0.35s var(--ease), transform 0.15s var(--ease);
+}
+
+.sendHot {
+    background-color: var(--accent);
+    color: #1d0b03;
+    cursor: pointer;
+}
+
+.sendHot:hover {
+    background-color: #ee8450;
+    transform: translateY(-1px);
+}
+
+.sendHot:active {
+    transform: scale(0.96);
+}
+
+/* Nothing open: the campfire burns alone in the middle with one line under it */
+.empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+/* An empty box the hearth canvas lights: the fire burns in its centre */
+.hearthSpot {
+    width: 180px;
+    height: 170px;
+}
+
+.emptyTitle {
+    composes: lit from '../../../components/hearth/hearth.module.css'; /* lit from below by the fire */
+    margin: 26px 0 0;
+    font-family: var(--serif);
+    font-weight: 520;
+    font-size: 38px;
+    letter-spacing: -0.02em;
+}
+
+.emptyText {
+    margin: 10px 0 0;
+    font-size: 15px;
+    color: var(--muted);
+}
+
+/* --------------------------------------------------------------------------
+   3. Phones: the ledger sits above the conversation and the masthead shrinks
+   -------------------------------------------------------------------------- */
+@media (max-width: 760px) {
+    .room {
+        flex-direction: column;
+    }
+
+    .ledger {
+        width: auto;
+        max-height: 40vh;
+        padding: 18px 16px 0;
+    }
+
+    .ledgerTitle {
+        font-size: 28px;
+    }
+
+    .stage {
+        --column: calc(100% - 28px);
+        min-height: 0;
+    }
+
+    .masthead {
+        padding-top: 14px;
+    }
+
+    .mastName {
+        font-size: 32px;
+    }
+
+    .quiet {
+        padding-bottom: 130px;
+    }
+
+    .bed {
+        height: 90px;
+    }
+
+    .composerDock {
+        bottom: 10px;
+        width: calc(100% - 20px);
+    }
+
+    .composer {
+        padding-left: 14px;
+    }
+
+    .composerTo {
+        display: none;
+    }
+
+    .sendError {
+        bottom: 80px;
+    }
+}
+
+/* Reduced motion: nothing cools, flickers or catches. Everything rests at its cooled colour */
+@media (prefers-reduced-motion: reduce) {
+    .coal,
+    .entryUnread .seat,
+    .entryCatching .seat,
+    .entryFlash .seat,
+    .mastStatus {
+        animation: none;
+    }
+
+    .entry,
+    .send,
+    .newGroupMark,
+    .tab::after {
+        transition: none;
+    }
+}

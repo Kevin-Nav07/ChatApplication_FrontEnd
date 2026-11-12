@@ -3,6 +3,7 @@ import type { FriendRequestItem } from '../types/friends';
 import styles from '../styles/Friends.module.css';
 import { formatRelativeTime } from '../utils/formatDates';
 import { heatTextColor, requestHeat } from '../utils/heat';
+import { lumpShape } from '../../../components/hearth/lumpShape';
 
 // Props definition for the incoming friend request item
 interface IncomingRequestItemProps {
@@ -43,7 +44,7 @@ export default function IncomingRequestItem({
             onMouseLeave={() => onHover?.(null)}
         >
             {/* A cold coal: they are not in the circle yet */}
-            <span className={`${styles.coal} ${styles.coalCold}`} aria-hidden="true">
+            <span className={`${styles.coal} ${styles.coalCold}`} style={{ borderRadius: lumpShape(request.friendshipId) }} aria-hidden="true">
                 {initial}
             </span>
 
