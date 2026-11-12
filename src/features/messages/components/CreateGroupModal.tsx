@@ -37,28 +37,30 @@ export default function CreateGroupModal({
     // Error message display state
     const [error, setError] = useState<string | null>(null);
 
-    // --------------------------------------------------------------------------
-    // TODO(you): Step 1 - Fetch confirmed friends when modal opens
-    // --------------------------------------------------------------------------
+    // Fetches confirmed friends each time the modal opens, so a friend added since last time is listed
     useEffect(() => {
         if (!isOpen) return; // do not fetch if modal is hidden
 
-        const loadFriends = async () => {
-            try {
-                // Call getFriends() from friendService to populate friends list
-                const confirmedFriends = await getFriends();
-                setFriends(confirmedFriends);
-            } catch (err: unknown) {
-                if (err instanceof AppError) {
-                    setError(err.message);
-                } else {
-                    setError('Failed to load friends list.');
-                }
-            }
+        let ignore = false; // set by cleanup so a response that arrives after closing is thrown away
+        getFriends()
+            .then((confirmedFriends) => {
+                if (!ignore) setFriends(confirmedFriends);
+            })
+            .catch((err: unknown) => {
+                if (!ignore) setError(err instanceof AppError ? err.message : 'Failed to load friends list.');
+            });
+        return () => {
+            ignore = true;
         };
-
-        loadFriends();
     }, [isOpen]);
+
+    // Clears everything typed or picked, then closes, so the next time the modal opens it starts empty
+    const handleClose = () => {
+        setGroupName('');
+        setSelectedUserIds([]);
+        setError(null);
+        onClose();
+    };
 
     // --------------------------------------------------------------------------
     // TODO(you): Step 2 - Toggle friend selection in selectedUserIds
@@ -105,9 +107,7 @@ export default function CreateGroupModal({
             });
 
             onRoomCreated(newRoom); // notifies parent coordinator
-            setGroupName(''); // resets input
-            setSelectedUserIds([]); // resets selected friends
-            onClose(); // closes modal
+            handleClose(); // resets the fields and closes the modal
         } catch (err: unknown) {
             if (err instanceof AppError) {
                 setError(err.message);
@@ -125,7 +125,7 @@ export default function CreateGroupModal({
     return (
         <div
             className={styles.backdrop}
-            onClick={onClose} // clicking the backdrop closes the modal
+            onClick={handleClose} // clicking the backdrop closes the modal
             role="dialog"
             aria-modal="true"
         >
@@ -137,7 +137,7 @@ export default function CreateGroupModal({
                     <button
                         type="button"
                         className={styles.closeBtn}
-                        onClick={onClose}
+                        onClick={handleClose}
                         aria-label="Close dialog"
                     >
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -213,7 +213,7 @@ export default function CreateGroupModal({
 
                     {/* Action Buttons */}
                     <div className={styles.actionsRow}>
-                        <button type="button" className={styles.cancelBtn} onClick={onClose}>
+                        <button type="button" className={styles.cancelBtn} onClick={handleClose}>
                             Cancel
                         </button>
                         <button

@@ -2,19 +2,44 @@ import React, { useState } from 'react';
 import styles from '../../../pages/styles/DashboardPage.module.css';
 import type { Room } from '../../../models/Room';
 import CreateGroupModal from './CreateGroupModal';
+import { useUserContext } from '../../../hooks/useUserContext';
 
 // Properties expected by the ConversationList component
 export interface ConversationListProps {
-    rooms: Room[]; // list of rooms retrieved from the backend
+    rooms: Room[]; // list of rooms retrieved from the backend, most recently active first
+    roomsLoaded: boolean; // false until the first room list arrives, so "no conversations" is not shown while loading
     selectedRoom: Room | null; // the room currently selected and open in the chat stage
     unreadRoomIds?: Set<number>; // set of room IDs that currently have unread incoming messages
     onSelectRoom: (room: Room) => void; // callback function triggered when a user clicks on a room
     onRoomCreated: (newRoom: Room) => void; // callback triggered when a new room is created via modal
 }
 
+// Short preview line under a room name: the newest message, with "You:" for your own
+function previewText(room: Room, currentUserId: number | null): string {
+    const last = room.last_message;
+    if (last == null) {
+        return 'No messages yet';
+    }
+    const author = last.sender_id === currentUserId ? 'You' : last.sender_username;
+    return `${author}: ${last.content}`;
+}
+
+// Time shown beside a room: today's messages show the time, older ones the date
+function activityLabel(room: Room): string {
+    const date = new Date(room.last_message?.created_at ?? room.created_at);
+    if (Number.isNaN(date.getTime())) {
+        return '';
+    }
+    const isToday = date.toDateString() === new Date().toDateString();
+    return isToday
+        ? date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })
+        : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
 // Sidebar list component displaying searchable conversations and rooms
 export default function ConversationList({
     rooms,
+    roomsLoaded,
     selectedRoom,
     unreadRoomIds,
     onSelectRoom,
@@ -25,6 +50,24 @@ export default function ConversationList({
     const [isModalOpen, setisModalOpen] = useState<boolean>(false);
     // Local search input state for filtering rooms by name
     const [searchTerm, setSearchTerm] = useState<string>('');
+    const { user } = useUserContext();
+    const currentUserId = user?.id ?? null;
+
+    // The rooms that pass both the search box and the All or Unread filter
+    const visibleRooms = rooms.filter((room) => {
+        const matchesSearch = room.name.toLowerCase().includes(searchTerm.trim().toLowerCase());
+        const matchesFilter = filter === 'all' || (unreadRoomIds?.has(room.id) ?? false);
+        return matchesSearch && matchesFilter;
+    });
+
+    // What to say when nothing is listed, which depends on why the list is empty
+    const emptyMessage = !roomsLoaded
+        ? 'Loading conversations...'
+        : rooms.length === 0
+            ? 'No conversations yet'
+            : filter === 'unread' && !searchTerm.trim()
+                ? 'No unread conversations'
+                : 'No conversations match your search';
 
     return (
         <aside className={styles.listPane} aria-label="Conversation List">
@@ -83,12 +126,7 @@ export default function ConversationList({
 
             {/* Conversation list body */}
             <div className={styles.listBody}>
-                {rooms
-                    .filter((room) => {
-                        const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase());
-                        const matchesFilter = filter === 'all' || (unreadRoomIds?.has(room.id) ?? false);
-                        return matchesSearch && matchesFilter;
-                    })
+                {visibleRooms
                     .map((room) => {
                         const isSelected = selectedRoom?.id === room.id; // checks if this item is currently active
 
@@ -108,11 +146,11 @@ export default function ConversationList({
                                     <div className={styles.chatTopRow}>
                                         <span className={styles.chatName}>{room.name}</span>
                                         <span className={styles.chatTime}>
-                                            {new Date(room.created_at).toLocaleDateString()}
+                                            {activityLabel(room)}
                                         </span>
                                     </div>
                                     <div className={styles.chatBottomRow}>
-                                        <p className={styles.chatSnippet}>{room.room_type}</p>
+                                        <p className={styles.chatSnippet}>{previewText(room, currentUserId)}</p>
                                         {/* Glowing ember spark badge if room has unread messages */}
                                         {unreadRoomIds?.has(room.id) && (
                                             <span className={styles.unreadBadge} aria-label="Unread message" />
@@ -123,10 +161,10 @@ export default function ConversationList({
                         );
                     })}
 
-                {/* Empty fallback if no rooms exist */}
-                {rooms.length === 0 && (
+                {/* Shown whenever nothing is listed, whether because of loading, no rooms, or the current filter */}
+                {visibleRooms.length === 0 && (
                     <p style={{ color: 'var(--muted)', textAlign: 'center', padding: '24px 8px', fontSize: '13px' }}>
-                        No conversations found
+                        {emptyMessage}
                     </p>
                 )}
             </div>
@@ -135,10 +173,7 @@ export default function ConversationList({
             <CreateGroupModal
                 isOpen={isModalOpen}
                 onClose={() => setisModalOpen(false)}
-                onRoomCreated={(newRoom) => {
-                    onRoomCreated(newRoom); // passes newly created room up to parent coordinator
-                    onSelectRoom(newRoom); // automatically selects and opens the newly created room
-                }}
+                onRoomCreated={onRoomCreated} // the parent adds the room and opens it
             />
         </aside>
     );

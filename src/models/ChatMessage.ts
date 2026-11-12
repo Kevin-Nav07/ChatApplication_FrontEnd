@@ -5,6 +5,6 @@ export interface ChatMessage {
     sender_id: number; // unique user identifier of the message author
     sender_username: string; // public display username of the author
     content: string; // text body of the message
+    message_type?: string; // 'text' for now, kept for future message kinds
     created_at: string; // ISO 8601 timestamp string representing when the message was saved
 }
-

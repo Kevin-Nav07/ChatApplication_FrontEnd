@@ -1,267 +1,230 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useReducer, useRef } from 'react';
 import ConversationList from './ConversationList';
 import ChatStage from './ChatStage';
 import ChatToast from './ChatToast';
 import type { Room } from '../../../models/Room';
-import { getRoomMessages, getRooms, type RoomMessagesResponse } from '../../../services/roomService';
-import { AppError } from '../../../models/AppError';
+import { getRoomMessages, getRooms } from '../../../services/roomService';
+import { getErrorMessage } from '../../../models/AppError';
 import useWebsocketContext from '../../../hooks/useWebsocketContext';
 import { useUserContext } from '../../../hooks/useUserContext';
-import type { ChatMessage } from '../../../models/ChatMessage';
+import { chatReducer, createInitialChatState } from '../state/chatReducer';
 
-// Type defining the active message list filter
-export type MessageFilter = 'all' | 'unread';
+const PAGE_SIZE = 30; // messages per history page
+const TOAST_DURATION_MS = 4500; // how long a message toast stays before hiding itself
 
-// Main coordinator component for the messages feature tab
-// This parent component manages the shared state between ConversationList and ChatStage
-export default function MessagesView(): React.JSX.Element {
-    // --------------------------------------------------------------------------
-    // Step 1: Shared Feature State
-    // --------------------------------------------------------------------------
-    const [rooms, setRooms] = useState<Room[]>([]); // holds the list of conversations loaded from the backend
-    const [selectedRoom, setSelectedRoom] = useState<Room | null>(null); // holds the active conversation viewed in both the sidebar and chat stage
-    const [errorMessage, setErrorMessage] = useState<string | null>(null); // stores any error returned from API or socket operations
-    const { status,
-        isConnected,
-        subscribeToMessages,
-        sendMessage } = useWebsocketContext(); // accesses websocket connection status and transmission methods
-    const { isAuthenticated, user } = useUserContext();
-    const [messagesByRoom, setMessagesByRoom] = useState<Map<number, ChatMessage[]>>(() => new Map());
+// Props passed down from DashboardPage
+interface MessagesViewProps {
+    initialRoomId: number | null; // the room that was open last time this tab was visible, reopened if it still exists
+    onSelectedRoomChange: (roomId: number) => void; // tells the dashboard which room is open, so it can be reopened later
+}
 
-    // Tracks which conversation room IDs currently have unread incoming messages
-    const [unreadRoomIds, setUnreadRoomIds] = useState<Set<number>>(() => new Set());
+// Coordinator for the Messages tab. It owns the chat state through chatReducer, loads data, listens to the socket,
+// and passes plain data and callbacks to the display components. This component unmounts when another tab opens,
+// and everything is fetched fresh when it mounts again, so nothing is stale after visiting the Friends tab
+export default function MessagesView({ initialRoomId, onSelectedRoomChange }: MessagesViewProps): React.JSX.Element {
+    // The third argument builds the first state from initialRoomId, once, when the component mounts
+    const [state, dispatch] = useReducer(chatReducer, initialRoomId, createInitialChatState);
+    const { status, isConnected, sendMessage, subscribe } = useWebsocketContext();
+    const { user } = useUserContext();
+    const currentUserId = user?.id ?? null;
 
-    // Holds payload for the active floating notification toast banner
-    const [toastNotification, setToastNotification] = useState<{
-        roomId: number;
-        roomName: string;
-        senderUsername: string;
-        snippet: string;
-    } | null>(null);
+    // Which newest-page requests are running, keyed by "generation:roomId", so the same page is never requested twice at once
+    const inFlightLatestRef = useRef<Set<string>>(new Set());
 
-    // Mutable refs to prevent stale closures inside the long-lived subscription callback
-    const selectedRoomRef = useRef<Room | null>(selectedRoom); // holds active room pointer for callbacks
-    selectedRoomRef.current = selectedRoom; // keeps pointer updated on every render
+    // Values derived from state on every render instead of being stored separately, so they can never disagree with it
+    const selectedRoomId = state.selectedRoomId;
+    const generation = state.historyGeneration;
+    const selectedRoom = state.rooms.find((room) => room.id === selectedRoomId) ?? null;
+    const selectedHistory = selectedRoomId != null ? state.historyByRoom[selectedRoomId] : undefined;
+    const needsLatestPage = selectedRoomId != null && !(selectedHistory?.hasLoadedLatest ?? false);
 
-    const roomsRef = useRef<Room[]>(rooms); // holds current room list pointer for callbacks
-    roomsRef.current = rooms; // keeps pointer updated on every render
-
-    // Retrieves cached message list for the currently viewed room
-    const getMessageForSelectedRoom = () => {
-        let messages: ChatMessage[] | undefined = undefined;
-        if (selectedRoom != null) {
-            messages = messagesByRoom.get(selectedRoom.id);
-        }
-        return messages;
-    };
-
-    // Selects a room, clears its unread indicator, and dismisses any active toast for that room
-    const handleSelectRoom = (room: Room) => {
-        setSelectedRoom(room); // sets the active room
-
-        // Clears unread badge if this room was marked unread
-        setUnreadRoomIds((prevSet) => {
-            if (!prevSet.has(room.id)) return prevSet; // no-op if room was not unread
-            const nextSet = new Set(prevSet); // creates new Set to trigger re-render
-            nextSet.delete(room.id); // removes unread flag
-            return nextSet;
-        });
-
-        // Dismisses toast notification if it corresponds to the newly opened room
-        if (toastNotification?.roomId === room.id) {
-            setToastNotification(null); // clears toast
-        }
-    };
-
-    // Auto-dismisses toast notification banner after 4.5 seconds of display
+    // Loads the room list on mount, and again whenever the reducer asks for it (after a reconnect, or a message for an unknown room)
     useEffect(() => {
-        if (!toastNotification) return; // does nothing if no toast is active
-
-        const timer = setTimeout(() => {
-            setToastNotification(null); // clears toast after duration expires
-        }, 4500);
-
-        return () => clearTimeout(timer); // cancels timer if another notification arrives or user dismisses
-    }, [toastNotification]);
-
-    // --------------------------------------------------------------------------
-    // Step 2: Load rooms from the backend on mount
-    // --------------------------------------------------------------------------
-    useEffect(() => {
-        // Asynchronous function defined inside the effect because React effects cannot be async
-        const fetchRooms = async () => {
-            try {
-                const fetchedRooms: Room[] = await getRooms(); // calls backend GET /rooms endpoint
-                setRooms(fetchedRooms); // stores room records in state
-
-                // Automatically selects the first room when rooms exist
-                if (fetchedRooms.length >= 1) {
-                    setSelectedRoom(fetchedRooms[0]);
+        let ignore = false; // set by cleanup so a response for an outdated request is thrown away
+        getRooms()
+            .then((rooms) => {
+                if (!ignore) {
+                    dispatch({ type: 'rooms/loaded', rooms });
                 }
-            } catch (error: unknown) {
-                // Extracts normalized error message from backend AppError
-                if (error instanceof AppError) {
-                    setErrorMessage(error.message);
-                } else {
-                    setErrorMessage("An unexpected error occurred while loading rooms.");
+            })
+            .catch((error: unknown) => {
+                if (!ignore) {
+                    dispatch({ type: 'error/set', error: getErrorMessage(error) });
                 }
-            }
-        };
-
-        fetchRooms(); // executes fetch operation on initial mount
-    }, []); // empty dependency array ensures this effect only executes once on mount
-
-    // --------------------------------------------------------------------------
-    // Step 3: Fetch messages whenever the selected room changes
-    // --------------------------------------------------------------------------
-    useEffect(() => {
-        const fetchMessages = async () => {
-            try {
-                if (selectedRoom?.id !== undefined) {
-                    // Cache check: only fetch from backend if not already stored in memory
-                    if (!messagesByRoom.has(selectedRoom.id)) {
-                        const response: RoomMessagesResponse = await getRoomMessages(selectedRoom.id, 30);
-                        const fetchedMessages = response?.messages || [];
-                        const chronological = [...fetchedMessages].reverse(); // reverses to display oldest at top, newest at bottom
-
-                        // Stores formatted messages under the room id in the Map state
-                        setMessagesByRoom((prevMap) => {
-                            const newMap = new Map(prevMap); // creates new Map to trigger React re-render
-                            newMap.set(selectedRoom.id, chronological);
-                            return newMap;
-                        });
-                    }
-                }
-            } catch (error: unknown) {
-                if (error instanceof AppError) {
-                    setErrorMessage(error.message);
-                } else {
-                    setErrorMessage("An unexpected error occurred while loading messages.");
-                }
-            }
-        };
-
-        fetchMessages();
-    }, [selectedRoom?.id]); // watches for changes to the selected room ID
-
-    // --------------------------------------------------------------------------
-    // Step 4: Event Handlers
-    // --------------------------------------------------------------------------
-    // Handles message submission originating from the ChatStage composer
-    const handleSendMessage = (text: string) => {
-        if (!selectedRoom) return; // guards against sending without an active conversation
-
-        // Transmits the message content to the server via WebSocket
-        sendMessage(selectedRoom.id, text); // backend saves to database and broadcasts confirmed message back
-        console.log(`Dispatched message to room ${selectedRoom.id}: ${text}`);
-    };
-
-    // --------------------------------------------------------------------------
-    // Step 5: Real-time Message Subscription via WebSocket
-    // --------------------------------------------------------------------------
-    useEffect(() => {
-        // Subscribes to live incoming messages across all rooms
-        const unsubscribe = subscribeToMessages((newMessage: ChatMessage) => {
-            // Checks whether the incoming message belongs to the room currently active on screen
-            const isCurrentRoom = selectedRoomRef.current?.id === newMessage.room_id;
-
-            // If the message is for a different room, trigger notification and mark room as unread
-            if (!isCurrentRoom) {
-                // Adds room to unread set
-                setUnreadRoomIds((prevSet) => {
-                    const nextSet = new Set(prevSet); // creates new Set to trigger re-render
-                    nextSet.add(newMessage.room_id); // marks room as unread
-                    return nextSet;
-                });
-
-                // Locates room name from current rooms ref to display in the toast banner
-                const targetRoom = roomsRef.current.find((room) => room.id === newMessage.room_id);
-                const roomName = targetRoom?.name || 'A conversation';
-
-                // Triggers the floating toast notification
-                setToastNotification({
-                    roomId: newMessage.room_id,
-                    roomName,
-                    senderUsername: newMessage.sender_username,
-                    snippet: newMessage.content,
-                });
-            }
-
-            // 1. Appends new message to the room in state if the room has already been loaded in memory
-            setMessagesByRoom((prevMap) => {
-                if (!prevMap.has(newMessage.room_id)) {
-                    return prevMap; // room history not yet loaded into memory, so skip appending
-                }
-
-                const currentList = prevMap.get(newMessage.room_id) || [];
-                const updatedList = [...currentList, newMessage]; // appends confirmed incoming message
-
-                const newMap = new Map(prevMap); // creates new Map instance to trigger re-render
-                newMap.set(newMessage.room_id, updatedList); // updates room entry
-                return newMap; // returns new Map reference
             });
-
-            // 2. Reorders conversation sidebar to place the most recently active room at the top
-            setRooms((prevRooms) => {
-                const targetRoom = prevRooms.find((room) => room.id === newMessage.room_id); // finds active room
-                if (!targetRoom) {
-                    return prevRooms; // returns unchanged list if room not found in state
-                }
-
-                const remainingRooms = prevRooms.filter((room) => room.id !== newMessage.room_id); // removes target room from its current index
-                return [targetRoom, ...remainingRooms]; // prepends target room to index 0
-            });
-        });
-
-        // Cleanup callback executed when MessagesView unmounts
         return () => {
-            unsubscribe(); // detaches listener from websocket provider
+            ignore = true;
         };
-    }, [subscribeToMessages]); // registers listener once and updates if provider reference changes
+    }, [state.roomsRequestId]);
+
+    // Loads the newest page of the open room when it has not been loaded yet.
+    // The response is stored under its own room id, so switching rooms while it loads cannot put it in the wrong room
+    useEffect(() => {
+        if (selectedRoomId == null || !needsLatestPage) {
+            return;
+        }
+        const key = `${generation}:${selectedRoomId}`;
+        if (inFlightLatestRef.current.has(key)) {
+            return; // already on its way, for example after StrictMode runs this effect a second time
+        }
+        inFlightLatestRef.current.add(key);
+        getRoomMessages(selectedRoomId, PAGE_SIZE)
+            .then((response) => dispatch({
+                type: 'history/loaded',
+                roomId: selectedRoomId,
+                messages: response.messages,
+                nextCursor: response.newCursor,
+                page: 'latest',
+                generation,
+            }))
+            .catch((error: unknown) => dispatch({ type: 'error/set', error: getErrorMessage(error) }))
+            .finally(() => inFlightLatestRef.current.delete(key));
+    }, [selectedRoomId, needsLatestPage, generation]);
+
+    // Listens to the socket for as long as this tab is open. The handler only translates socket events into reducer
+    // actions, so it never needs the current state and can never see an old copy of it
+    useEffect(() => {
+        return subscribe((event) => {
+            switch (event.type) {
+                case 'message:new':
+                    dispatch({ type: 'message/received', message: event.message, currentUserId });
+                    break;
+                case 'message:error':
+                    dispatch({ type: 'sendError/set', error: `Your message was not sent: ${event.error}` });
+                    break;
+                case 'room:new':
+                    dispatch({ type: 'room/added', room: event.room });
+                    break;
+                case 'connection:reopened':
+                    dispatch({ type: 'connection/reopened' });
+                    break;
+            }
+        }); // subscribe returns the unsubscribe function, which React calls as this effect's cleanup
+    }, [subscribe, currentUserId]);
+
+    // Hides the toast after a few seconds; a newer toast restarts the timer because state.toast changes
+    useEffect(() => {
+        if (!state.toast) {
+            return;
+        }
+        const timer = window.setTimeout(() => dispatch({ type: 'toast/dismissed' }), TOAST_DURATION_MS);
+        return () => window.clearTimeout(timer);
+    }, [state.toast]);
+
+    // Reports the open room to the dashboard so it is reopened after visiting another tab
+    useEffect(() => {
+        if (selectedRoomId != null) {
+            onSelectedRoomChange(selectedRoomId);
+        }
+    }, [selectedRoomId, onSelectedRoomChange]);
+
+    // Opens a room, which also clears its unread dot
+    const handleSelectRoom = (room: Room) => {
+        dispatch({ type: 'room/selected', roomId: room.id });
+    };
+
+    // Adds a room the user just created and opens it. The server's room:new event for the same room is ignored as a duplicate
+    const handleRoomCreated = (room: Room) => {
+        dispatch({ type: 'room/added', room });
+        dispatch({ type: 'room/selected', roomId: room.id });
+    };
+
+    // Sends the composer text. Returns false when nothing was sent, so the composer keeps the text instead of clearing it.
+    // The message appears once the server confirms it with message:new, so it is never shown unless it was really saved
+    const handleSendMessage = (text: string): boolean => {
+        if (selectedRoomId == null) {
+            return false;
+        }
+        const clientMessageId = sendMessage(selectedRoomId, text);
+        if (clientMessageId == null) {
+            dispatch({ type: 'sendError/set', error: 'You are offline, so the message was not sent. Try again once the connection is back.' });
+            return false;
+        }
+        if (state.sendError) {
+            dispatch({ type: 'sendError/cleared' });
+        }
+        return true;
+    };
+
+    // Fetches the page of messages older than the oldest one on screen
+    const handleLoadOlder = () => {
+        const roomId = selectedRoomId;
+        const cursor = selectedHistory?.nextCursor;
+        if (roomId == null || !cursor || selectedHistory?.isLoadingOlder) {
+            return;
+        }
+        dispatch({ type: 'history/olderStarted', roomId });
+        getRoomMessages(roomId, PAGE_SIZE, cursor)
+            .then((response) => dispatch({
+                type: 'history/loaded',
+                roomId,
+                messages: response.messages,
+                nextCursor: response.newCursor,
+                page: 'older',
+                generation,
+            }))
+            .catch((error: unknown) => {
+                dispatch({ type: 'history/olderFailed', roomId });
+                dispatch({ type: 'error/set', error: getErrorMessage(error) });
+            });
+    };
+
+    // The toast's room name comes from the current room list, so a renamed or newly loaded room shows correctly
+    const toastRoom = state.toast ? state.rooms.find((room) => room.id === state.toast?.roomId) : undefined;
 
     return (
         <>
-            {/* Displays a warning banner if room loading encounters a server error */}
-            {errorMessage && (
-                <div role="alert" style={{ color: 'var(--accent)', padding: '8px 16px', fontSize: '13px' }}>
-                    {errorMessage}
+            {/* A failed load, dismissible so it does not stay forever */}
+            {state.error && (
+                <div role="alert" style={{ color: 'var(--accent)', padding: '8px 16px', fontSize: '13px', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span>{state.error}</span>
+                    <button
+                        type="button"
+                        onClick={() => dispatch({ type: 'error/cleared' })}
+                        aria-label="Dismiss error"
+                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' }}
+                    >
+                        ×
+                    </button>
                 </div>
             )}
 
-            {/* Interactive floating toast notification for background messages */}
-            {toastNotification && (
+            {/* Notification for a message in a room that is not open */}
+            {state.toast && (
                 <ChatToast
-                    roomName={toastNotification.roomName}
-                    senderUsername={toastNotification.senderUsername}
-                    snippet={toastNotification.snippet}
+                    roomName={toastRoom?.name ?? 'A conversation'}
+                    senderUsername={state.toast.senderUsername}
+                    snippet={state.toast.snippet}
                     onClick={() => {
-                        // Finds target room and switches active view to it
-                        const targetRoom = rooms.find((r) => r.id === toastNotification.roomId);
-                        if (targetRoom) {
-                            handleSelectRoom(targetRoom);
+                        if (toastRoom) {
+                            handleSelectRoom(toastRoom);
                         }
                     }}
-                    onDismiss={() => setToastNotification(null)}
+                    onDismiss={() => dispatch({ type: 'toast/dismissed' })}
                 />
             )}
 
-            {/* Left conversation sidebar */}
             <ConversationList
-                rooms={rooms}
+                rooms={state.rooms}
+                roomsLoaded={state.roomsLoaded}
                 selectedRoom={selectedRoom}
-                unreadRoomIds={unreadRoomIds}
+                unreadRoomIds={state.unreadRoomIds}
                 onSelectRoom={handleSelectRoom}
-                onRoomCreated={(newRoom) => {
-                    setRooms((prev) => [newRoom, ...prev]); // prepend to room list
-                    handleSelectRoom(newRoom); // switch active stage to new room
-                }}
+                onRoomCreated={handleRoomCreated}
             />
 
-            {/* Right chat canvas and composer */}
             <ChatStage
                 selectedRoom={selectedRoom}
+                messages={selectedHistory?.messages ?? []}
+                isLoadingHistory={needsLatestPage && state.error == null}
+                hasOlderMessages={selectedHistory?.nextCursor != null}
+                isLoadingOlder={selectedHistory?.isLoadingOlder ?? false}
+                onLoadOlder={handleLoadOlder}
                 onSendMessage={handleSendMessage}
-                messages={getMessageForSelectedRoom()}
+                connectionStatus={status}
+                isConnected={isConnected}
+                sendError={state.sendError}
+                onDismissSendError={() => dispatch({ type: 'sendError/cleared' })}
             />
         </>
     );

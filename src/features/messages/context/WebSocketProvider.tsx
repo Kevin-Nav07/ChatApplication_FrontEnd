@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { WebSocketContext, type ConnectionStatus, type MessageListener, type WebSocketContextType } from './WebSocketContext';
-import type { ChatMessage } from '../../../models/ChatMessage';
-
-
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { WebSocketContext, type ConnectionStatus, type SocketEvent, type SocketEventListener, type WebSocketContextType } from './WebSocketContext';
+import { getUserMe } from '../../../services/authService';
+import { AppError } from '../../../models/AppError';
 
 // Props accepted by the provider component
 interface WebSocketProviderProps {
@@ -13,207 +12,193 @@ interface WebSocketProviderProps {
 const rawApiUrl = import.meta.env.VITE_API_BASE_URL || 'https://localhost:5043';
 const WS_URL = rawApiUrl.replace(/^http/, 'ws'); // replaces http with ws and https with wss
 
-// The provider component that manages the socket lifecycle and exposes the API to children
+const MAX_RECONNECT_DELAY_MS = 30000; // retries never wait longer than 30 seconds
+
+// Turns one raw text frame from the server into a typed SocketEvent, or null if it is not something we understand.
+// Checking the shape here means the rest of the app can trust the fields it reads
+function parseServerEvent(raw: string): SocketEvent | null {
+    let data: unknown;
+    try {
+        data = JSON.parse(raw);
+    } catch {
+        return null;
+    }
+    if (typeof data !== 'object' || data === null) {
+        return null;
+    }
+    const event = data as Record<string, unknown>;
+    if (event.type === 'message:new' && typeof event.message === 'object' && event.message !== null) {
+        return event as unknown as SocketEvent;
+    }
+    if (event.type === 'message:error' && typeof event.error === 'string') {
+        return event as unknown as SocketEvent;
+    }
+    if (event.type === 'room:new' && typeof event.room === 'object' && event.room !== null) {
+        return event as unknown as SocketEvent;
+    }
+    return null;
+}
+
+// How long to wait before reconnect attempt number `attempt` (0 based): 1s, 2s, 4s ... capped at 30s.
+// The random part (jitter) spreads clients out, so after a server restart they do not all reconnect in the same instant
+function reconnectDelay(attempt: number): number {
+    const base = Math.min(1000 * 2 ** attempt, MAX_RECONNECT_DELAY_MS);
+    return base / 2 + Math.random() * (base / 2); // somewhere between half and all of the base delay
+}
+
+// Owns the single WebSocket connection for the logged in user and shares it with every component below it.
+// It survives StrictMode's mount, unmount, mount cycle, reconnects after unexpected drops, and closes on unmount (for example on logout)
 export function WebSocketProvider({ children }: WebSocketProviderProps): React.JSX.Element {
-    // Tracks the human-readable connection status
-    const [status, setStatus] = useState<ConnectionStatus>('DISCONNECTED');
+    // The provider is only rendered once the user is known, so the first thing it does is connect
+    const [status, setStatus] = useState<ConnectionStatus>('CONNECTING');
 
-    // Stores subscriber callback functions that want to receive real-time messages
-    // Using a ref with a Set ensures subscriptions do not cause the provider to re-render
-    const messageListenersRef = useRef<Set<MessageListener>>(new Set());
+    // Subscribers live in a ref so adding or removing one never re-renders the provider
+    const listenersRef = useRef<Set<SocketEventListener>>(new Set());
 
-    // Holds the mutable WebSocket instance across renders without triggering component re-renders
+    // The socket currently in use, or null while there is none. sendMessage reads it
     const socketRef = useRef<WebSocket | null>(null);
 
-    // Tracks how many consecutive failed reconnection attempts have occurred
-    const reconnectAttemptsRef = useRef<number>(0);
-
-    // Stores the id of the active reconnection timer so it can be cancelled on unmount
-    const reconnectTimerRef = useRef<number | null>(null);
-
-    // Prevents reconnection logic from firing after the user navigates away or logs out
-    const isUnmountedRef = useRef<boolean>(false);
-
-    // Caps consecutive reconnection retries to avoid infinite spamming of the server
-    const MAX_RECONNECT_ATTEMPTS = 10;
-
-    // Calculates delay using exponential backoff and schedules a reconnection attempt
-    const scheduleReconnect = () => {
-        // Stops retrying if maximum attempts are exceeded
-        if (reconnectAttemptsRef.current >= MAX_RECONNECT_ATTEMPTS) {
-            console.warn('[WebSocket] Maximum reconnection attempts reached. Giving up.');
-            return;
-        }
-
-        // Exponential backoff formula: 1s, 2s, 4s, 8s, capped at a maximum of 30 seconds
-        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000); // doubles wait time on each failure
-        reconnectAttemptsRef.current += 1; // increments failure count for the next attempt
-
-        setStatus('RECONNECTING'); // updates UI to inform the user that a reconnect is pending
-        console.log(`[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current})...`);
-
-        // Sets a timer to attempt connection after the calculated backoff delay
-        reconnectTimerRef.current = window.setTimeout(() => {
-            connect(); // attempts to reconnect after waiting
-        }, delay);
-    };
-
-    // Establishes a new WebSocket connection to the backend and configures event listeners
-    const connect = () => {
-        // Prevents opening a connection if the component is already unmounted
-        if (isUnmountedRef.current) {
-            return; // exits early to prevent orphan connections
-        }
-
-        // Prevents opening a duplicate socket if one is already open or currently connecting
-        if (socketRef.current && (socketRef.current.readyState === WebSocket.OPEN || socketRef.current.readyState === WebSocket.CONNECTING)) {
-            return; // exits early to avoid duplicate connections
-        }
-
-        setStatus('CONNECTING'); // notifies UI that the connection handshake is in progress
-
-        // Creates the native browser WebSocket connection
-        // The browser automatically attaches HTTP-only cookies during the handshake upgrade request
-        const ws = new WebSocket(WS_URL);
-        socketRef.current = ws; // stores the socket instance in the ref
-
-        // Event handler executed when the handshake succeeds and the TCP stream is ready
-        ws.onopen = () => {
-            // Guard against callbacks from abandoned or obsolete sockets
-            if (socketRef.current !== ws || isUnmountedRef.current) {
-                ws.close(1000, 'Superseded socket'); // cleanly terminates obsolete socket
-                return; // ignores obsolete socket events
-            }
-            console.log('[WebSocket] Connection established successfully to', WS_URL);
-            reconnectAttemptsRef.current = 0; // resets backoff counter because connection succeeded
-            setStatus('CONNECTED'); // updates UI state to connected
-        };
-
-        // Event handler executed whenever the server pushes a message down the stream
-        ws.onmessage = (event: MessageEvent) => {
-            // Guard against messages from old or discarded connections
-            if (socketRef.current !== ws || isUnmountedRef.current) {
-                return; // ignores messages from abandoned socket
-            }
-            try {
-                // Parses the JSON text frame received from the Node ws server
-                const parsed = JSON.parse(event.data);
-
-                // Checks if the incoming frame is a new chat message broadcast
-                if (parsed?.type === 'message:new' && parsed.message) {
-                    const incomingMessage: ChatMessage = parsed.message; // extracts confirmed message payload
-
-                    // Dispatches the message synchronously to every registered subscriber
-                    messageListenersRef.current.forEach((listener) => {
-                        try {
-                            listener(incomingMessage); // executes consumer callback
-                        } catch (listenerError) {
-                            console.error('[WebSocket] Error running message listener callback:', listenerError);
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error('[WebSocket] Failed to parse incoming JSON frame:', err);
-            }
-        };
-
-        // Event handler executed when a network level error occurs on the socket
-        ws.onerror = (err) => {
-            // If this socket is no longer the active one or the component unmounted, ignore its errors
-            if (socketRef.current !== ws || isUnmountedRef.current) {
-                return; // silences errors from discarded or intentionally aborted sockets
-            }
-            console.error('[WebSocket] Socket encountered an error:', err);
-        };
-
-        // Event handler executed when the connection drops or is closed by either side
-        ws.onclose = (event: CloseEvent) => {
-            // Guard against close events triggered by discarded sockets from previous renders
-            if (socketRef.current !== ws) {
-                return; // ignores close event from superseded socket so it does not overwrite state
-            }
-            console.log(`[WebSocket] Closed (Code: ${event.code}, Reason: "${event.reason}")`);
-            setStatus('DISCONNECTED'); // updates UI state to disconnected
-
-            // Only attempt reconnection if the component is still actively mounted on the page
-            if (!isUnmountedRef.current) {
-                scheduleReconnect(); // triggers backoff retry mechanism
-            }
-        };
-    };
-
-    // Serializes and transmits a chat message payload to a specific conversation room
-    const sendMessage = (roomId: number, content: string) => {
-        // Verifies the socket exists and is in the OPEN readyState before trying to write to the stream
-        if (!socketRef.current || socketRef.current.readyState !== WebSocket.OPEN) {
-            console.warn('[WebSocket] Cannot send message: connection is not open.');
-            return;
-        }
-
-        // Formats payload to match the backend contract with both content and message keys
-        const payload = JSON.stringify({
-            room_id: roomId, // target conversation room
-            content: content, // standard content attribute
-            message: content, // backwards-compatible fallback attribute
-        });
-
-        socketRef.current.send(payload); // writes the payload string into the WebSocket stream
-    };
-
-    // Registers a listener callback and returns an unsubscription function for effect cleanup
-    const subscribeToMessages = useCallback((listener: MessageListener) => {
-        messageListenersRef.current.add(listener); // adds subscriber to the active set
-
-        // Unsubscribe function to be called during effect cleanup in the consumer component
-        return () => {
-            messageListenersRef.current.delete(listener); // removes subscriber from the active set
-        };
-    }, []); // empty dependencies array guarantees stable function reference across renders
-
-    // Lifecycle hook that runs on initial mount to start connection and cleans up on unmount
+    // The whole connection lifecycle lives inside this one effect. Every piece of state it needs (attempt count,
+    // retry timer, whether it was stopped) is a local variable of this run, so a StrictMode remount gets fresh
+    // values and the cleanup of the first run cannot interfere with the second
     useEffect(() => {
-        isUnmountedRef.current = false; // marks component as mounted
-        connect(); // initiates socket connection when the provider enters the DOM
+        let stopped = false; // set by cleanup; every callback checks it so nothing happens after unmount
+        let attempt = 0; // failed attempts in a row, reset after a successful connection
+        let hasConnectedBefore = false; // tells a reconnect apart from the very first connection
+        let retryTimer: number | null = null; // the one pending retry, so it can be cancelled
 
-        // Cleanup function executed when the provider unmounts (e.g. user logs out or leaves dashboard)
-        return () => {
-            isUnmountedRef.current = true; // marks component as unmounted so reconnect loops stop
+        // Hands an event to every subscriber. One faulty subscriber must not stop the others from hearing it
+        const emit = (event: SocketEvent) => {
+            listenersRef.current.forEach((listener) => {
+                try {
+                    listener(event);
+                } catch (listenerError) {
+                    console.error('[WebSocket] A listener threw while handling an event:', listenerError);
+                }
+            });
+        };
 
-            // Cancels any pending reconnection timeout so it does not fire in the background
-            if (reconnectTimerRef.current !== null) {
-                window.clearTimeout(reconnectTimerRef.current);
-                reconnectTimerRef.current = null; // resets timer ref
+        // Opens a new socket and wires up its handlers
+        const connect = () => {
+            if (stopped) {
+                return;
             }
+            // The browser sends the HttpOnly auth cookies with this handshake automatically
+            const ws = new WebSocket(WS_URL);
+            socketRef.current = ws;
 
-            // Closes the active socket connection cleanly
-            if (socketRef.current) {
-                const socket = socketRef.current; // holds reference to the socket being torn down
-                socketRef.current = null; // clears active socket ref so no further events are processed
+            ws.onopen = () => {
+                attempt = 0; // a working connection resets the backoff
+                setStatus('CONNECTED');
+                if (hasConnectedBefore) {
+                    emit({ type: 'connection:reopened' }); // anything sent while we were offline was missed
+                }
+                hasConnectedBefore = true;
+            };
 
-                // Silences event handlers on the discarded socket to prevent noisy console errors during teardown
-                socket.onerror = () => { }; // suppresses browser abort error during teardown
-                socket.onclose = () => { }; // suppresses close event so it does not trigger reconnect logic
+            ws.onmessage = (messageEvent: MessageEvent) => {
+                const event = parseServerEvent(String(messageEvent.data));
+                if (event) {
+                    emit(event);
+                }
+            };
 
-                // If still in the middle of connecting, close gracefully after opening or immediately
-                if (socket.readyState === WebSocket.CONNECTING) {
-                    socket.onopen = () => {
-                        socket.close(1000, 'Provider unmounted'); // closes once handshake finishes
-                    };
-                    socket.close(1000, 'Provider unmounted'); // requests closure immediately
-                } else if (socket.readyState === WebSocket.OPEN) {
-                    socket.close(1000, 'Provider unmounted'); // terminates the open TCP connection cleanly
+            // Every drop that was not caused by our own cleanup counts as unexpected and is retried
+            ws.onclose = () => {
+                if (socketRef.current === ws) {
+                    socketRef.current = null; // nothing can be sent until a new socket opens
+                }
+                if (stopped) {
+                    return;
+                }
+                setStatus('RECONNECTING');
+                scheduleReconnect();
+            };
+        };
+
+        // Waits, makes sure the login is still valid, then reconnects
+        const scheduleReconnect = () => {
+            const delay = reconnectDelay(attempt);
+            attempt += 1;
+            retryTimer = window.setTimeout(async () => {
+                retryTimer = null;
+                try {
+                    // The browser cannot read why a websocket handshake was refused, so an expired access token looks
+                    // exactly like a network error. Calling /users/me first lets the axios interceptor refresh the token
+                    await getUserMe();
+                } catch (error) {
+                    if (stopped) {
+                        return;
+                    }
+                    // 401 here means the refresh token is gone too (the interceptor is already sending the user to the login page),
+                    // and 404 means the account no longer exists. Retrying could never succeed, so stop
+                    if (error instanceof AppError && (error.statusCode === 401 || error.statusCode === 404)) {
+                        setStatus('DISCONNECTED');
+                        return;
+                    }
+                    scheduleReconnect(); // server down or offline, try again after a longer wait
+                    return;
+                }
+                connect();
+            }, delay);
+        };
+
+        connect();
+
+        // Runs on unmount (logout, leaving the dashboard) and between StrictMode's two mounts in development
+        return () => {
+            stopped = true;
+            if (retryTimer !== null) {
+                window.clearTimeout(retryTimer);
+            }
+            const ws = socketRef.current;
+            socketRef.current = null;
+            if (ws) {
+                ws.onclose = null; // an intentional close must not schedule a reconnect
+                ws.onmessage = null;
+                if (ws.readyState === WebSocket.CONNECTING) {
+                    // closing mid handshake makes the browser log an error, so it is closed as soon as it opens instead
+                    ws.onopen = () => ws.close(1000, 'Provider unmounted');
+                } else {
+                    ws.onopen = null;
+                    ws.close(1000, 'Provider unmounted');
                 }
             }
         };
     }, []);
 
-    // The API object bundle that will be passed down to consumer components
-    const contextValue: WebSocketContextType = {
-        status, // the current connection state
-        isConnected: status === 'CONNECTED', // convenience boolean
-        sendMessage, // method to transmit a message
-        subscribeToMessages, // method to subscribe to incoming messages
-    };
+    // Sends a message in the format agreed in PLAN.md. client_message_id lets a reply from the server
+    // (message:new or message:error) be matched to this exact send. Returns null if nothing could be sent
+    const sendMessage = useCallback((roomId: number, content: string): string | null => {
+        const socket = socketRef.current;
+        if (!socket || socket.readyState !== WebSocket.OPEN) {
+            return null;
+        }
+        const clientMessageId = crypto.randomUUID(); // built into browsers on https pages
+        socket.send(JSON.stringify({
+            type: 'message:send',
+            room_id: roomId,
+            client_message_id: clientMessageId,
+            content,
+        }));
+        return clientMessageId;
+    }, []);
+
+    // Registers a listener and returns the matching unsubscribe function for effect cleanup
+    const subscribe = useCallback((listener: SocketEventListener) => {
+        listenersRef.current.add(listener);
+        return () => {
+            listenersRef.current.delete(listener);
+        };
+    }, []);
+
+    // useMemo keeps the same object between renders unless status changes, so consumers only re-render when something real changed
+    const contextValue: WebSocketContextType = useMemo(() => ({
+        status,
+        isConnected: status === 'CONNECTED',
+        sendMessage,
+        subscribe,
+    }), [status, sendMessage, subscribe]);
 
     return (
         <WebSocketContext.Provider value={contextValue}>
@@ -221,6 +206,3 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
         </WebSocketContext.Provider>
     );
 }
-
-
-

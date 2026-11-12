@@ -6,9 +6,42 @@ import HearthProvider from '../components/hearth/HearthProvider';
 import { WebSocketProvider } from '../features/messages/context/WebSocketProvider';
 import { useUserContext } from '../hooks/useUserContext';
 import ProfileMenu from '../features/auth/components/ProfileMenu';
+import Spinner from '../components/Spinner';
+import { Navigate } from 'react-router-dom';
 
 // Type defining the active primary navigation mode in the left rail
 type NavTab = 'messages' | 'friends' | 'settings';
+
+// Centers the loading spinner or a load error on an otherwise empty screen
+const fullScreenCenter: React.CSSProperties = {
+    minHeight: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '12px',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'var(--color-background-deep)',
+    color: 'var(--color-text-main)',
+};
+
+// A small banner pinned to the top of the screen for account errors such as a failed logout
+const errorToast: React.CSSProperties = {
+    position: 'fixed',
+    top: '16px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    zIndex: 1000,
+    display: 'flex',
+    gap: '10px',
+    alignItems: 'center',
+    padding: '10px 16px',
+    borderRadius: '12px',
+    background: 'rgba(118, 34, 22, 0.92)',
+    color: '#fff',
+    fontSize: '13px',
+};
+
+const dismissButton: React.CSSProperties = { background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '16px' };
 
 // Main dashboard page component rendered after user authentication
 // Every screen sits in one dark room lit by a fire: HearthProvider draws the fire, embers and sparks around the interface
@@ -16,12 +49,46 @@ export default function DashboardPage(): React.JSX.Element {
     // Tracks which tab is active in the left navigation rail
     const [activeTab, setActiveTab] = useState<NavTab>('messages');
     const [isProfileMenuOpen, setProfileMenuOpen] = useState<boolean>(false);
-    const { user, logoutFn, isAuthenticated } = useUserContext();
+    // The Messages tab unmounts when another tab opens, so the open room is remembered here and reopened on return
+    const [lastRoomId, setLastRoomId] = useState<number | null>(null);
+    const { user, loading, error, logoutFn, clearError } = useUserContext();
+
+    // Nothing that needs the user is rendered until the session check finishes. This also means the websocket only
+    // connects after the access token has been refreshed if it had expired, instead of failing its first attempt
+    if (loading) {
+        return (
+            <div style={fullScreenCenter}>
+                <Spinner size={28} />
+            </div>
+        );
+    }
+
+    if (!user) {
+        // The check failed for an unexpected reason, such as the server being down, so say so instead of showing a broken dashboard
+        if (error) {
+            return (
+                <div style={fullScreenCenter} role="alert">
+                    <p>Could not load your account: {error}</p>
+                    <button type="button" onClick={() => window.location.reload()}>Try again</button>
+                </div>
+            );
+        }
+        // Simply not logged in (or the account no longer exists)
+        return <Navigate to="/auth/login" replace />;
+    }
 
     return (
         <WebSocketProvider>
             <HearthProvider>
                 <div className={styles.dashboardContainer}>
+                    {/* An account level error while logged in, for example a failed logout. Fixed position so it does not shift the layout */}
+                    {error && (
+                        <div role="alert" style={errorToast}>
+                            <span>{error}</span>
+                            <button type="button" onClick={clearError} aria-label="Dismiss error" style={dismissButton}>×</button>
+                        </div>
+                    )}
+
                     {/* ----------------------------------------------------------------
                     1. Nav Rail (72px bar on the far left, a bottom bar on phones)
                     Houses primary navigation targets: Messages, Friends, Settings, and Profile
@@ -80,14 +147,15 @@ export default function DashboardPage(): React.JSX.Element {
                         {/* Profile avatar, pushed to the bottom of the rail */}
                         <button type="button" className={styles.avatarRing} title="Your Profile" aria-label="Your profile"
                             onClick={() => setProfileMenuOpen(true)}>
-                            <span>{isAuthenticated ? user?.username.trim().charAt(0).toUpperCase() : 'U'}</span>
+                            <span>{user.username.trim().charAt(0).toUpperCase() || 'U'}</span>
                         </button>
                         <ProfileMenu isOpen={isProfileMenuOpen}
-                            username={user?.username}
-                            email={user?.email}
+                            username={user.username}
+                            email={user.email}
                             onClose={() => setProfileMenuOpen(false)}
-                            onLogout={() => logoutFn()}>
-                        </ProfileMenu>
+                            // void marks the promise as deliberately not awaited, because logoutFn handles its own errors
+                            onLogout={() => { void logoutFn(); }}
+                        />
                     </nav>
 
                     {/* ----------------------------------------------------------------
@@ -97,7 +165,7 @@ export default function DashboardPage(): React.JSX.Element {
                     - 'settings': Renders settings placeholder
                    ---------------------------------------------------------------- */}
                     {activeTab === 'messages' && (
-                        <MessagesView />
+                        <MessagesView initialRoomId={lastRoomId} onSelectedRoomChange={setLastRoomId} />
                     )}
 
                     {/* Friends Feature: the circle around the fire */}
