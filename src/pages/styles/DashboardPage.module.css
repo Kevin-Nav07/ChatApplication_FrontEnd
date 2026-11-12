@@ -156,43 +156,7 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. Settings placeholder (the Messages screen styles itself in features/messages/styles/Messages.module.css)
-   -------------------------------------------------------------------------- */
-.settingsPane {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    text-align: center;
-    padding: 2rem;
-}
-
-/* The same masthead type as Messages and Friends */
-.settingsTitle {
-    composes: lit from '../../components/hearth/hearth.module.css'; /* lit from below by the fire */
-    font-family: var(--serif);
-    font-size: 56px;
-    font-weight: 480;
-    line-height: 1;
-    letter-spacing: -0.03em;
-    font-variation-settings: 'opsz' 144;
-    margin: 0;
-}
-
-/* A line in small capitals under the title */
-.settingsText {
-    margin: 10px 0 0;
-    font-size: 10.5px;
-    font-weight: 600;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--faint);
-}
-
-/* --------------------------------------------------------------------------
-   3. Phones: the rail becomes a bar along the bottom, panes stack
+   2. Phones: the rail becomes a bar along the bottom, panes stack
    -------------------------------------------------------------------------- */
 @media (max-width: 760px) {
     .dashboardContainer {

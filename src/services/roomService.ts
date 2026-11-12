@@ -12,7 +12,7 @@ export async function getRooms(): Promise<Room[]> {
 
 // Payload contract for creating a new room
 export interface CreateRoomPayload {
-    name: string; // name of the room
+    name?: string; // required for groups; left out for direct rooms, which each person sees under the other's username
     room_type: 'direct' | 'group'; // indicates whether this is a direct conversation or a group conversation
     users: number[]; // array of member user ids to add to the room
 }

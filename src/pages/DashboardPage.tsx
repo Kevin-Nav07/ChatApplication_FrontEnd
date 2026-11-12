@@ -10,7 +10,7 @@ import Spinner from '../components/Spinner';
 import { Navigate } from 'react-router-dom';
 
 // Type defining the active primary navigation mode in the left rail
-type NavTab = 'messages' | 'friends' | 'settings';
+type NavTab = 'messages' | 'friends';
 
 // Centers the loading spinner or a load error on an otherwise empty screen. The background stays clear,
 // so the fire from the page before keeps burning behind it while the session is checked
@@ -92,7 +92,7 @@ export default function DashboardPage(): React.JSX.Element {
 
                 {/* ----------------------------------------------------------------
                 1. Nav Rail (72px bar on the far left, a bottom bar on phones)
-                Houses primary navigation targets: Messages, Friends, Settings, and Profile
+                Houses primary navigation targets: Messages, Friends, and Profile (which holds Log out)
                ---------------------------------------------------------------- */}
                 <nav className={styles.navRail} aria-label="Primary Navigation">
                     {/* Brand flame, glowing with the fire */}
@@ -130,19 +130,6 @@ export default function DashboardPage(): React.JSX.Element {
                             </svg>
                             <span className={styles.navLabel}>Friends</span>
                         </button>
-
-                        <button
-                            type="button"
-                            className={`${styles.navButton} ${activeTab === 'settings' ? styles.navButtonActive : ''}`}
-                            aria-current={activeTab === 'settings' ? 'page' : undefined}
-                            onClick={() => setActiveTab('settings')}
-                        >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                            </svg>
-                            <span className={styles.navLabel}>Settings</span>
-                        </button>
                     </div>
 
                     {/* The fire's sound, pushed to the bottom of the rail just above the avatar */}
@@ -166,23 +153,19 @@ export default function DashboardPage(): React.JSX.Element {
                 Feature Render Switching based on activeTab
                 - 'messages': Renders conversation list and chat stage
                 - 'friends': Renders the FriendsView component, the circle around the fire
-                - 'settings': Renders settings placeholder
                ---------------------------------------------------------------- */}
                 {activeTab === 'messages' && (
                     <MessagesView initialRoomId={lastRoomId} onSelectedRoomChange={setLastRoomId} />
                 )}
 
-                {/* Friends Feature: the circle around the fire */}
+                {/* Friends Feature: the circle around the fire.
+                    "Message" on a friend hands back the direct room's id. Storing it as the last open room and switching tabs
+                    makes MessagesView open that room as soon as it has loaded the room list */}
                 {activeTab === 'friends' && (
-                    <FriendsView onDirectMessage={() => setActiveTab('messages')} />
-                )}
-
-                {/* Settings Tab Placeholder */}
-                {activeTab === 'settings' && (
-                    <section className={styles.settingsPane} aria-labelledby="settings-title">
-                        <h1 id="settings-title" className={styles.settingsTitle}>Settings</h1>
-                        <p className={styles.settingsText}>Profile, notifications, and security preferences.</p>
-                    </section>
+                    <FriendsView onOpenRoom={(roomId) => {
+                        setLastRoomId(roomId);
+                        setActiveTab('messages');
+                    }} />
                 )}
             </div>
         </WebSocketProvider>

@@ -14,7 +14,8 @@ export async function signup(formInputs: SignupForm): Promise<AxiosResponse> {
 // Returns true if the user exists (200 OK), false if not found (404), or throws for server errors
 export async function checkUsernameExists(username: string): Promise<boolean> {
     try {
-        const response: AxiosResponse = await api.get(`/users/name/${username}`); // Sends GET request to check username
+        // encodeURIComponent escapes characters like / ? # so a typed name can never change which URL is requested
+        const response: AxiosResponse = await api.get(`/users/name/${encodeURIComponent(username)}`);
         return response.status === 200; // If status is 200, user exists in the database
     } catch (error: unknown) {
         // If our AppError interceptor captured a 404 Not Found response
