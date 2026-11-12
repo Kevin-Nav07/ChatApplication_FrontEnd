@@ -143,31 +143,34 @@ export default function ChatStage({
                 </div>
             )}
 
-            {/* The composer: who it goes to, the line to write on, and a send plate that heats up once there is text */}
-            <div className={styles.composer}>
-                <span className={styles.composerTo} aria-hidden="true">To {selectedRoom.name}</span>
-                <input
-                    type="text"
-                    className={styles.composerInput}
-                    placeholder={isConnected ? 'Write something' : 'Waiting for the connection to come back'}
-                    aria-label={`Message ${selectedRoom.name}`}
-                    value={draftMessage}
-                    maxLength={MAX_MESSAGE_LENGTH}
-                    onChange={(e) => setDraftMessage(e.target.value)} // binds input value to local state
-                    onKeyDown={handleKeyDown} // captures enter key
-                />
-                <button
-                    type="button"
-                    className={`${styles.send} ${canSend ? styles.sendHot : ''}`}
-                    onClick={handleSend}
-                    disabled={!canSend} // no sending while empty or offline; typing is still allowed offline
-                >
-                    Send
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M9 10l-5 5 5 5" />
-                        <path d="M20 4v7a4 4 0 0 1-4 4H4" />
-                    </svg>
-                </button>
+            {/* The composer: who it goes to, the line to write on, and a send plate that heats up once there is text.
+                The dock places it above the fire; the inner slab carries the rough edge, which would otherwise override the positioning */}
+            <div className={styles.composerDock}>
+                <div className={styles.composer}>
+                    <span className={styles.composerTo} aria-hidden="true">To {selectedRoom.name}</span>
+                    <input
+                        type="text"
+                        className={styles.composerInput}
+                        placeholder={isConnected ? 'Write something' : 'Waiting for the connection to come back'}
+                        aria-label={`Message ${selectedRoom.name}`}
+                        value={draftMessage}
+                        maxLength={MAX_MESSAGE_LENGTH}
+                        onChange={(e) => setDraftMessage(e.target.value)} // binds input value to local state
+                        onKeyDown={handleKeyDown} // captures enter key
+                    />
+                    <button
+                        type="button"
+                        className={`${styles.send} ${canSend ? styles.sendHot : ''}`}
+                        onClick={handleSend}
+                        disabled={!canSend} // no sending while empty or offline; typing is still allowed offline
+                    >
+                        Send
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M9 10l-5 5 5 5" />
+                            <path d="M20 4v7a4 4 0 0 1-4 4H4" />
+                        </svg>
+                    </button>
+                </div>
             </div>
         </main>
     );

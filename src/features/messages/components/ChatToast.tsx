@@ -12,7 +12,7 @@ export interface ChatToastProps {
     onDismiss: () => void; // callback triggered when the user clicks the close button
 }
 
-// A note that a message arrived in another room: the sender in italic serif, the room in small capitals,
+// A small note that a message arrived in another room: the sender in italic serif, the room in small capitals,
 // and a line of heat along the bottom that burns down while the note is showing
 export default function ChatToast({
     roomName,
@@ -25,22 +25,26 @@ export default function ChatToast({
     const burnStyle: CSSVars = { '--toast-ms': `${durationMs}ms` };
 
     return (
-        <div className={styles.toast} role="status" aria-live="polite">
-            {/* The main part is a real button, so it can be reached and opened with the keyboard */}
-            <button type="button" className={styles.open} onClick={onClick}>
-                <span className={styles.room}>{roomName}</span>
-                <span className={styles.sender}>{senderUsername}</span>
-                <span className={styles.snippet}>{snippet}</span>
-            </button>
+        // Two layers: the dock pins the note to the corner, the inner note carries the rough charcoal edge.
+        // They are split because the shared rough style sets position: relative, which would undo position: fixed on one element
+        <div className={styles.dock} role="status" aria-live="polite">
+            <div className={styles.toast}>
+                {/* The main part is a real button, so it can be reached and opened with the keyboard */}
+                <button type="button" className={styles.open} onClick={onClick}>
+                    <span className={styles.room}>{roomName}</span>
+                    <span className={styles.sender}>{senderUsername}</span>
+                    <span className={styles.snippet}>{snippet}</span>
+                </button>
 
-            <button type="button" className={styles.close} onClick={onDismiss} aria-label="Dismiss notification">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                    <path d="M18 6L6 18M6 6l12 12" />
-                </svg>
-            </button>
+                <button type="button" className={styles.close} onClick={onDismiss} aria-label="Dismiss notification">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                    </svg>
+                </button>
 
-            {/* The heat line: a countdown you can see, cooling as it shortens */}
-            <span className={styles.burn} style={burnStyle} aria-hidden="true" />
+                {/* The heat line: a countdown you can see, cooling as it shortens */}
+                <span className={styles.burn} style={burnStyle} aria-hidden="true" />
+            </div>
         </div>
     );
 }

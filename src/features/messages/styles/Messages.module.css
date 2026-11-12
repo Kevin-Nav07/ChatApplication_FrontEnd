@@ -16,14 +16,17 @@
     display: flex;
 }
 
-/* A load error, pinned to the top of the room so the layout does not move */
-.loadError {
-    composes: rough from '../../../components/hearth/hearth.module.css';
+/* Pins a load error to the top of the room so the layout does not move (split from .loadError for the same reason as the composer) */
+.errorDock {
     position: absolute;
     top: 14px;
     left: 50%;
     transform: translateX(-50%);
     z-index: 20;
+}
+
+.loadError {
+    composes: rough from '../../../components/hearth/hearth.module.css';
     display: flex;
     align-items: center;
     gap: 14px;
@@ -608,15 +611,20 @@
     color: var(--negative);
 }
 
-/* The composer: a charcoal slab resting just above the fire, firelight catching its lower edge */
-.composer {
-    composes: rough from '../../../components/hearth/hearth.module.css';
+/* Places the composer just above the fire. Kept apart from .composer, because the rough edge style it composes
+   sets position: relative and would win over position: absolute if both were on one element */
+.composerDock {
     position: absolute;
     z-index: 3;
     left: 50%;
     bottom: 30px;
     transform: translateX(-50%);
     width: min(660px, calc(100% - 48px));
+}
+
+/* The composer: a charcoal slab resting just above the fire, firelight catching its lower edge */
+.composer {
+    composes: rough from '../../../components/hearth/hearth.module.css';
     display: flex;
     align-items: center;
     gap: 14px;
@@ -781,9 +789,12 @@
         height: 90px;
     }
 
-    .composer {
+    .composerDock {
         bottom: 10px;
         width: calc(100% - 20px);
+    }
+
+    .composer {
         padding-left: 14px;
     }
 

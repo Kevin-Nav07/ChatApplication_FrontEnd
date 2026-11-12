@@ -3,6 +3,7 @@ import type { Friend } from '../types/friends';
 import styles from '../styles/Friends.module.css';
 import { formatShortDate } from '../utils/formatDates';
 import { coalStyle, friendWarmth, heatTextColor } from '../utils/heat';
+import { lumpShape } from '../../../components/hearth/lumpShape';
 
 // Props definition for the individual friend row component
 interface FriendItemProps {
@@ -40,7 +41,7 @@ export default function FriendItem({ friend, onSendMessage, onRemove, disabled =
             onMouseEnter={() => onHover?.(key)}
             onMouseLeave={() => onHover?.(null)}
         >
-            <span className={styles.coal} style={coalStyle(warmth)} aria-hidden="true">
+            <span className={styles.coal} style={{ ...coalStyle(warmth), borderRadius: lumpShape(friend.friendshipId) }} aria-hidden="true">
                 {avatarInitial}
             </span>
 

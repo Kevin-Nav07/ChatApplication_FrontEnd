@@ -56,7 +56,7 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* One focus ring for keyboard users. Inputs are skipped because their pill wrappers show the ring instead */
+/* One focus ring for keyboard users. Inputs are skipped because the charcoal line under each one turns ember on focus instead */
 .dashboardContainer :focus-visible:not(input) {
     outline: 2px solid var(--muted);
     outline-offset: 2px;
@@ -89,10 +89,9 @@
     pointer-events: none;
 }
 
-/* The product's mark, glowing with the fire's flicker */
+/* The product's mark in ember, flat: the fire on screen does the glowing, the logo does not */
 .brandIcon {
     color: var(--accent);
-    filter: drop-shadow(0 0 calc(7px * var(--flick, 1)) rgba(229, 117, 61, 0.55));
 }
 
 .navGroup {
@@ -102,8 +101,9 @@
     margin-top: 26px;
 }
 
-/* An icon with its name under it. The open tab is marked by brightness alone */
+/* An icon with its name under it. The open tab is brighter and marked by an ember tick on the rail's edge */
 .navButton {
+    position: relative;
     width: 62px;
     padding: 9px 0 7px;
     border: none;
@@ -133,18 +133,35 @@
     color: var(--text);
 }
 
-.navLabel {
-    font-size: 11px;
+/* The tick: a short hand drawn ember stroke across the rail's charcoal edge, like the marks on the Messages scale */
+.navButtonActive::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    right: -11px;
+    width: 14px;
+    height: 1.5px;
+    background-color: var(--accent);
+    filter: url(#hearth-rough);
 }
 
-/* The signed in user's avatar, pushed to the bottom of the rail */
+/* Labels in small capitals, the same voice as every other label in the app */
+.navLabel {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+/* The signed in user's avatar, pushed to the bottom of the rail: a charcoal lump like every other person in the app */
 .avatarRing {
     margin-top: auto;
     width: 38px;
     height: 38px;
-    border-radius: 50%;
+    border-radius: 46% 54% 52% 48% / 55% 45% 55% 45%;
     border: none;
     background-color: var(--char-2);
+    box-shadow: inset 0 0 0 1.3px rgba(214, 198, 180, 0.18), inset 0 -4px 8px rgba(0, 0, 0, 0.35);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -174,19 +191,26 @@
     padding: 2rem;
 }
 
+/* The same masthead type as Messages and Friends */
 .settingsTitle {
     font-family: var(--serif);
-    font-size: 32px;
-    font-weight: 560;
-    letter-spacing: -0.015em;
+    font-size: 56px;
+    font-weight: 480;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variation-settings: 'opsz' 144;
     color: var(--text);
     margin: 0;
 }
 
+/* A line in small capitals under the title */
 .settingsText {
-    font-size: 14px;
-    color: var(--muted);
-    margin: 0;
+    margin: 10px 0 0;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
 }
 
 /* --------------------------------------------------------------------------
@@ -230,6 +254,14 @@
         flex: 1;
         justify-content: space-around;
         margin: 0;
+    }
+
+    /* The bar's charcoal edge is along its top here, so the open tab's tick crosses that edge instead */
+    .navButtonActive::after {
+        top: -8px;
+        right: auto;
+        left: 50%;
+        margin-left: -7px;
     }
 }
 

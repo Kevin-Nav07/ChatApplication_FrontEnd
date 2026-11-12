@@ -178,11 +178,13 @@ export default function MessagesView({ initialRoomId, onSelectedRoomChange }: Me
         <div className={styles.room} data-hearth-calm="">
             {/* A failed load, dismissible so it does not stay forever */}
             {state.error && (
-                <div role="alert" className={styles.loadError}>
-                    <span>{state.error}</span>
-                    <button type="button" className={styles.textBtn} onClick={() => dispatch({ type: 'error/cleared' })}>
-                        Dismiss
-                    </button>
+                <div className={styles.errorDock}>
+                    <div role="alert" className={styles.loadError}>
+                        <span>{state.error}</span>
+                        <button type="button" className={styles.textBtn} onClick={() => dispatch({ type: 'error/cleared' })}>
+                            Dismiss
+                        </button>
+                    </div>
                 </div>
             )}
 

@@ -27,32 +27,51 @@
     padding: 30px 36px 0;
 }
 
+/* The masthead, matching the Messages screen: a large serif title, facts in small capitals, and a charcoal rule underneath */
 .stageHead {
+    position: relative;
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: flex-end;
     flex-wrap: wrap;
     gap: 20px 32px;
+    padding-bottom: 16px;
 }
 
-/* The screen's title in the warm serif; large type sits slightly tighter */
+.stageHead::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.4px;
+    background: linear-gradient(to right, rgba(214, 198, 180, 0.24), rgba(214, 198, 180, 0.24) 80%, rgba(214, 198, 180, 0));
+    filter: url(#hearth-rough);
+}
+
+/* The screen's title in the warm serif, set large like the room names on the Messages screen */
 .title {
     font-family: var(--serif);
-    font-weight: 560;
-    font-size: 32px;
-    line-height: 1.1;
-    letter-spacing: -0.015em;
+    font-weight: 480;
+    font-size: 56px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variation-settings: 'opsz' 144;
     color: var(--text);
     margin: 0;
 }
 
+/* The counts under the title, in small capitals */
 .subtitle {
-    margin: 6px 0 0;
-    font-size: 14px;
-    color: var(--muted);
+    margin: 12px 0 0;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--faint);
 }
 
-/* "2 waiting at the edge of the light" glows warm, because it is the thing that needs an answer */
+/* "2 waiting at the edge of the light" runs hot, because it is the thing that needs an answer */
 .subtitleWarm {
     font-style: normal;
     color: var(--ember-hot);
@@ -68,13 +87,17 @@
 }
 
 .addLabel {
-    font-size: 13px;
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--muted);
 }
 
 .addRow {
     display: flex;
-    gap: 8px;
+    align-items: center;
+    gap: 14px;
 }
 
 .addRow .field {
@@ -113,13 +136,23 @@
     font-size: 13px;
 }
 
+/* "Dismiss", a quiet word rather than a cross */
 .errorBannerClose {
+    min-height: 32px;
+    padding: 0 10px;
     border: none;
+    border-radius: 8px;
     background: transparent;
-    color: inherit;
-    font-size: 1.1rem;
-    line-height: 1;
+    color: var(--muted);
+    font: inherit;
+    font-size: 12.5px;
     cursor: pointer;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.errorBannerClose:hover {
+    color: var(--text);
+    background-color: rgba(255, 255, 255, 0.05);
 }
 
 /* --------------------------------------------------------------------------
@@ -226,7 +259,8 @@
     opacity: 0.18;
 }
 
-/* A person, drawn as a coal. --heat is their colour temperature, --halo the glow it gives off */
+/* A person, drawn as a coal: an irregular lump (its shape comes from lumpShape() inline) lit from inside.
+   --heat is their colour temperature. There is deliberately no glow around the outside, only the light within */
 .coal {
     width: var(--size, 36px);
     height: var(--size, 36px);
@@ -239,7 +273,7 @@
     font: 600 calc(var(--size, 36px) * 0.36) / 1 var(--font);
     color: var(--text);
     background: radial-gradient(circle at 50% 78%, color-mix(in srgb, var(--heat, #6f675f) 34%, #15100c) 0%, #110d0a 72%);
-    box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 calc(22px * var(--flick, 1)) var(--halo, transparent);
+    box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), inset 0 -4px 8px rgba(0, 0, 0, 0.35);
     transition: transform 0.25s var(--ease);
 }
 
@@ -260,16 +294,17 @@ button.coal {
     transform: translateY(-3px) scale(1.06);
 }
 
+/* Breathing is the light inside the coal rising and falling, never a halo pulsing around it */
 @keyframes breathe {
-    0%, 100% { box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 12px var(--halo, transparent); }
-    50% { box-shadow: 0 0 0 1.5px var(--rim, rgba(214, 198, 180, 0.3)), 0 0 30px var(--halo, transparent); }
+    0%, 100% { filter: brightness(calc(0.5 + 0.5 * var(--lit, 1))); }
+    50% { filter: brightness(calc(0.62 + 0.62 * var(--lit, 1))); }
 }
 
-/* Someone not yet in the circle: no heat of their own, a dark coal whose ring slowly catches the light */
+/* Someone not yet in the circle: no heat of their own, a dark coal whose rim slowly catches the light */
 .coalCold {
     background: #120f0d;
     color: var(--faint);
-    box-shadow: 0 0 0 1.5px rgba(214, 198, 180, 0.2);
+    box-shadow: 0 0 0 1.5px rgba(214, 198, 180, 0.2), inset 0 -4px 8px rgba(0, 0, 0, 0.35);
 }
 
 .seat .coalCold {
@@ -277,9 +312,10 @@ button.coal {
     animation: waitPulse 3.4s ease-in-out infinite;
 }
 
+/* Only the rim's colour changes; nothing spreads outward */
 @keyframes waitPulse {
-    0%, 100% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.14), 0 0 0 rgba(229, 117, 61, 0); }
-    50% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.55), 0 0 18px rgba(229, 117, 61, 0.35); }
+    0%, 100% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.14), inset 0 -4px 8px rgba(0, 0, 0, 0.35); }
+    50% { box-shadow: 0 0 0 1.5px rgba(229, 117, 61, 0.7), inset 0 -4px 8px rgba(0, 0, 0, 0.35); }
 }
 
 .seatName {
@@ -366,42 +402,68 @@ button.coal {
 /* --------------------------------------------------------------------------
    3. Everyone: the list panel
    -------------------------------------------------------------------------- */
+/* A margin column like the Messages ledger: no box, set apart by a hand drawn charcoal line along its left edge */
 .listPanel {
-    composes: panel from '../../../components/hearth/hearth.module.css';
-    margin: 16px 16px 16px 0;
+    position: relative;
     display: flex;
     flex-direction: column;
     min-height: 0;
 }
 
-.listTop {
-    padding: 20px 18px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+.listPanel::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 30px;
+    bottom: 30px;
+    width: 1.3px;
+    background: linear-gradient(to bottom, rgba(214, 198, 180, 0), rgba(214, 198, 180, 0.2) 12%, rgba(214, 198, 180, 0.2) 88%, rgba(214, 198, 180, 0));
+    filter: url(#hearth-rough);
 }
 
+.listTop {
+    padding: 34px 22px 8px 26px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* The same size and face as the "Messages" title */
 .panelTitle {
     font-family: var(--serif);
     font-weight: 560;
-    font-size: 19px;
-    letter-spacing: -0.01em;
+    font-size: 34px;
+    letter-spacing: -0.018em;
+    font-variation-settings: 'opsz' 96;
     color: var(--text);
     margin: 0;
 }
 
-/* Pill field with a charcoal outline, used for search and for the username */
+/* A line to write on, used for search and for the username: no box, just a charcoal stroke that turns ember on focus */
 .field {
-    composes: rough from '../../../components/hearth/hearth.module.css';
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     height: 40px;
-    padding: 0 16px;
-    border-radius: var(--radius-pill);
-    background-color: rgba(22, 18, 15, 0.92);
+    padding: 0 2px;
     color: var(--faint);
-    transition: background-color 0.15s;
+}
+
+.field::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1.3px;
+    background-color: rgba(214, 198, 180, 0.2);
+    filter: url(#hearth-rough);
+    transition: background-color 0.25s;
+}
+
+.field:focus-within::after {
+    background-color: rgba(229, 117, 61, 0.7);
 }
 
 .field input {
@@ -419,29 +481,22 @@ button.coal {
     color: var(--faint);
 }
 
-.field:focus-within {
-    background-color: var(--char-2);
-}
-
-/* The focus ring for a field goes on the whole pill, not the bare input inside it */
-.field:focus-within:has(input:focus-visible) {
-    outline: 2px solid var(--muted);
-    outline-offset: 2px;
-}
-
 .listScroll {
     flex: 1;
     overflow-y: auto;
-    padding: 0 10px 14px;
+    padding: 0 12px 14px 16px;
 }
 
+/* Section heads in small capitals, their counts beside them */
 .listHead {
     display: flex;
     align-items: baseline;
     gap: 8px;
     margin: 0;
-    padding: 16px 8px 6px;
-    font: 500 13px var(--font);
+    padding: 20px 8px 8px;
+    font: 600 10.5px var(--font);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
     color: var(--muted);
 }
 
@@ -461,12 +516,17 @@ button.coal {
     gap: 12px;
     padding: 9px 8px;
     border-radius: var(--radius-row);
-    transition: background-color 0.15s;
+    transition: background-color 0.25s;
 }
 
-.row:hover,
-.rowHighlighted {
-    background-color: rgba(43, 37, 31, 0.6);
+/* The same warm plate as a room on the Messages scale */
+.row:hover {
+    background-color: rgba(255, 220, 190, 0.035);
+}
+
+.rowHighlighted,
+.rowHighlighted:hover {
+    background-color: rgba(255, 220, 190, 0.06);
 }
 
 .row .coal {
@@ -518,24 +578,25 @@ button.coal {
 /* --------------------------------------------------------------------------
    4. Buttons
    -------------------------------------------------------------------------- */
-/* The screen's one primary button: a light pill with dark text */
+/* The screen's one primary button: an ember plate, the same as Send on the Messages screen */
 .primaryBtn {
-    height: 40px;
-    padding: 0 20px;
+    height: 42px;
+    padding: 0 18px;
     border: 0;
-    border-radius: var(--radius-pill);
-    background-color: var(--text);
-    color: var(--char-0);
+    border-radius: 12px;
+    background-color: var(--accent);
+    color: #1d0b03;
     font-family: inherit;
     font-size: 14px;
     font-weight: 600;
     white-space: nowrap;
     cursor: pointer;
-    transition: background-color 0.15s, transform 0.1s ease-out;
+    transition: background-color 0.35s var(--ease), color 0.35s var(--ease), transform 0.15s var(--ease);
 }
 
-.primaryBtn:hover {
-    background-color: #ffffff;
+.primaryBtn:hover:not(:disabled) {
+    background-color: #ee8450;
+    transform: translateY(-1px);
 }
 
 .primaryBtn:disabled {
@@ -657,7 +718,7 @@ button.coal {
     }
 
     .title {
-        font-size: 28px;
+        font-size: 36px;
     }
 
     .addForm {
@@ -680,6 +741,15 @@ button.coal {
 
     .listPanel {
         margin: 0 12px 24px;
+    }
+
+    /* Stacked under the circle, the list needs no dividing line beside it */
+    .listPanel::before {
+        display: none;
+    }
+
+    .listTop {
+        padding-left: 8px;
     }
 
     .listScroll {

@@ -2,6 +2,7 @@ import React from 'react';
 import type { FriendRequestItem } from '../types/friends';
 import styles from '../styles/Friends.module.css';
 import { formatRelativeTime } from '../utils/formatDates';
+import { lumpShape } from '../../../components/hearth/lumpShape';
 
 // Props definition for the outgoing pending friend request item
 interface PendingRequestItemProps {
@@ -29,7 +30,7 @@ export default function PendingRequestItem({
             data-row-name={request.username} // lets the add friend form find this row and glow it right after sending
         >
             {/* A cold coal: they have not answered yet */}
-            <span className={`${styles.coal} ${styles.coalCold}`} aria-hidden="true">
+            <span className={`${styles.coal} ${styles.coalCold}`} style={{ borderRadius: lumpShape(request.friendshipId) }} aria-hidden="true">
                 {initial}
             </span>
 

@@ -56,13 +56,5 @@ export function shortAgo(isoDate?: string | null): string {
     return date.toLocaleDateString([], { day: 'numeric', month: 'short' });
 }
 
-// An irregular rounded outline for a coal, so no two coals are the same perfect circle.
-// It is worked out from the id with fixed arithmetic, so the same room always gets the same lump
-export function lumpShape(id: number): string {
-    const a = 40 + ((id * 37) % 21); // each value lands between 40 and 60 percent
-    const b = 40 + ((id * 53) % 21);
-    const c = 40 + ((id * 71) % 21);
-    const d = 40 + ((id * 89) % 21);
-    // The eight values set the horizontal and vertical radius of each corner, the slash separates the two sets
-    return `${a}% ${100 - a}% ${b}% ${100 - b}% / ${c}% ${d}% ${100 - d}% ${100 - c}%`;
-}
+// The coal outline now lives with the other shared hearth materials; re-exported so messages code can keep importing it from here
+export { lumpShape } from '../../../components/hearth/lumpShape';
