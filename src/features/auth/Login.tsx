@@ -97,8 +97,9 @@ export default function Login(): React.JSX.Element {
                             id="username"
                             {...register("username", {
                                 required: "Username is required", // Required field validation
-                                minLength: { value: 4, message: "Must be at least 4 characters" }, // Minimum length check
-                                maxLength: { value: 20, message: "Cannot exceed 20 characters" }, // Maximum length check
+                                // Same limits as signup and the server (3 to 32), so every existing account can log in
+                                minLength: { value: 3, message: "Must be at least 3 characters" },
+                                maxLength: { value: 32, message: "Cannot exceed 32 characters" },
                             })}
                             className={`${styles.inputField} ${errors.username ? styles.inputFieldError : ''}`}
                             placeholder="Enter your username"

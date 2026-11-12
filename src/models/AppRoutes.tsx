@@ -5,6 +5,7 @@ import AuthPage from "../pages/AuthPage";
 import Login from "../features/auth/Login";
 import Signup from "../features/auth/Signup";
 import DashboardPage from "../pages/DashboardPage";
+import NotFoundPage from "../pages/NotFoundPage";
 import { UserContextProvider } from "../features/auth/context/UserContextProvider.tsx";
 
 //creates a dataRouter which is a routing list or map
@@ -12,6 +13,7 @@ const routeList: DataRouter = createBrowserRouter([
     {
         path: "/",  //path specifies the path
         Component: App,//component specifies the component to be loaded in
+        ErrorBoundary: NotFoundPage,//shown instead of React Router's developer error page if a child route crashes
         children: [//children are what can be loaded through the <Outlet> tag in tsx
             //a child route component will replace the <Outlet> tag. Here App.tsx has a fixed navbar and then a <Outlet> which gets replaced by poges
             { index: true, Component: HomePage },
@@ -38,6 +40,10 @@ const routeList: DataRouter = createBrowserRouter([
                         <DashboardPage />
                     </UserContextProvider>
                 )
+            },
+            {
+                path: "*", // matches any URL no other route matched
+                Component: NotFoundPage
             }
 
         ]

@@ -7,12 +7,18 @@ import Spinner from '../../components/Spinner';
 import StatusCard, { type StatusFeedback } from '../../components/StatusCard';
 import FieldError from '../../components/FieldError';
 import { signup, checkUsernameExists } from '../../services/authService';
-import useAPI from '../../hooks/useAPI';
+import { getErrorMessage } from '../../models/AppError';
+
+// The server's rules for new accounts (Models/Schemas.js in the backend). The form uses the same numbers,
+// so anything the form accepts the server accepts too, instead of failing after submitting
+const USERNAME_MIN = 3;
+const USERNAME_MAX = 32;
+const PASSWORD_MIN = 8;
+const PASSWORD_MAX = 72; // bcrypt only uses the first 72 bytes of a password
+const EMAIL_MAX = 254;
 
 // Component that renders the signup page and handles new user registration
 export default function Signup(): React.JSX.Element {
-    // Custom hook managing the network call and loading state for registration
-    const { execute: executeSignup, isLoading } = useAPI(signup);
     // State to store feedback card data after submission (null when no notification is active)
     const [status, setStatus] = useState<StatusFeedback | null>(null);
 
@@ -34,24 +40,22 @@ export default function Signup(): React.JSX.Element {
         // Clear any previous notification before starting a new submission
         setStatus(null);
 
-        // Execute signup request through our useAPI custom hook
-        const result = await executeSignup(formData);
-
-        if (result) {
-            // Set positive feedback state when the account is created
+        // signup is called directly, like in Login, because the server's reason for refusing (for example
+        // "Username is already taken") is needed for the message, and useAPI only returns null on failure.
+        // react-hook-form keeps isSubmitting true until this function finishes, which drives the loading state
+        try {
+            await signup(formData);
             setStatus({
                 type: 'success',
                 title: 'Success!',
-                message: `Welcome, ${formData.username}! Your account has been created.`,
+                message: `Welcome, ${formData.username}! Your account has been created. You can log in now.`,
             });
-            // Reset all form input fields back to initial empty state
-            reset();
-        } else {
-            // Set error feedback state when the registration request fails
+            reset(); // clears the form fields
+        } catch (error: unknown) {
             setStatus({
                 type: 'error',
-                title: 'Oops!',
-                message: 'Unable to create account. Please verify your details or try again.',
+                title: 'Could not create account',
+                message: getErrorMessage(error),
             });
         }
     };
@@ -81,9 +85,9 @@ export default function Signup(): React.JSX.Element {
             <form className={styles.formElement} onSubmit={handleSubmit(submitHandler)}>
                 {/* 
                   The native fieldset element automatically disables all nested inputs
-                  when isSubmitting, isLoading, or async validation is in flight
+                  while submitting or while the async username check is in flight
                 */}
-                <fieldset disabled={isSubmitting || isLoading || isCheckingUsername} className={styles.fieldset}>
+                <fieldset disabled={isSubmitting || isCheckingUsername} className={styles.fieldset}>
                     {/* Email Input Group */}
                     <div className={styles.inputGroup}>
                         <label htmlFor="email" className={styles.label}>
@@ -109,8 +113,8 @@ export default function Signup(): React.JSX.Element {
                                     message: 'Email must be at least 6 characters', // Minimum length constraint
                                 },
                                 maxLength: {
-                                    value: 40,
-                                    message: 'Email cannot exceed 40 characters', // Maximum length constraint
+                                    value: EMAIL_MAX,
+                                    message: `Email cannot exceed ${EMAIL_MAX} characters`, // Maximum length constraint
                                 },
                                 pattern: {
                                     value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
@@ -146,16 +150,16 @@ export default function Signup(): React.JSX.Element {
                                 required: 'Username is required', // Synchronous check 1
                                 setValueAs: (value) => value.trim(),
                                 minLength: {
-                                    value: 6,
-                                    message: 'Username must be at least 6 characters', // Synchronous check 2
+                                    value: USERNAME_MIN,
+                                    message: `Username must be at least ${USERNAME_MIN} characters`, // Synchronous check 2
                                 },
                                 maxLength: {
-                                    value: 40,
-                                    message: 'Username cannot exceed 40 characters', // Synchronous check 3
+                                    value: USERNAME_MAX,
+                                    message: `Username cannot exceed ${USERNAME_MAX} characters`, // Synchronous check 3
                                 },
                                 pattern: {
-                                    value: /^[a-zA-Z0-9_]+$/,
-                                    message: "Username can only contain letters, numbers, and underscores",
+                                    value: /^[a-zA-Z0-9_-]+$/, // the same characters the server allows
+                                    message: "Username can only contain letters, numbers, underscores and hyphens",
                                 },
                                 validate: {
                                     // Asynchronous validation: only executes if all synchronous checks pass
@@ -195,12 +199,12 @@ export default function Signup(): React.JSX.Element {
                             {...register('password', {
                                 required: 'Password is required', // Required password validation
                                 minLength: {
-                                    value: 6,
-                                    message: 'Password must be at least 6 characters', // Minimum length constraint
+                                    value: PASSWORD_MIN,
+                                    message: `Password must be at least ${PASSWORD_MIN} characters`, // Minimum length constraint
                                 },
                                 maxLength: {
-                                    value: 40,
-                                    message: 'Password cannot exceed 40 characters', // Maximum length constraint
+                                    value: PASSWORD_MAX,
+                                    message: `Password cannot exceed ${PASSWORD_MAX} characters`, // Maximum length constraint
                                 },
                             })}
                             type="password"
@@ -217,9 +221,9 @@ export default function Signup(): React.JSX.Element {
                 <button
                     type="submit"
                     className={styles.submitButton}
-                    disabled={isSubmitting || isLoading || isCheckingUsername}
+                    disabled={isSubmitting || isCheckingUsername}
                 >
-                    {isSubmitting || isLoading ? (
+                    {isSubmitting ? (
                         <span className={styles.buttonLoadingContent}>
                             <Spinner size={16} />
                             <span>Creating account...</span>
