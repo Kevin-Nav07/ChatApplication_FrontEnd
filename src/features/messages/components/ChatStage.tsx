@@ -1,16 +1,22 @@
 import React, { useState } from 'react';
 import styles from '../../../pages/styles/DashboardPage.module.css';
 import type { Room } from '../../../models/Room';
+import type { ChatMessage } from '../../../models/ChatMessage';
+import MessageList from './MessageList';
 
 // Properties required by the ChatStage canvas component
 export interface ChatStageProps {
     selectedRoom: Room | null; // active room currently open, or null if no conversation is selected
+    messages?: ChatMessage[]; // array of loaded messages for the currently selected room
     onSendMessage: (text: string) => void; // callback triggered when submitting the message
+    // we need an on receive message handler as a prop
+
 }
 
 // Main stage component rendering the active conversation canvas and composer
 export default function ChatStage({
     selectedRoom,
+    messages = [],
     onSendMessage,
 }: ChatStageProps): React.JSX.Element {
     // Local draft text state colocated here to prevent re-rendering the parent or sidebar on keystrokes
@@ -18,11 +24,12 @@ export default function ChatStage({
 
     // Dispatches the message content to the parent and clears the local input dock
     const handleSend = () => {
-        const trimmed = draftMessage.trim();
-        if (!trimmed || !selectedRoom) return;
+        const trimmed = draftMessage.trim(); // removes surrounding whitespace
+        if (!trimmed || !selectedRoom) return; // guards against empty inputs or unselected room
 
         onSendMessage(trimmed); // delivers message text up to parent handler
         setDraftMessage(''); // resets input dock after dispatch
+
     };
 
     // Handles enter key press to submit message without needing to click the button
@@ -45,25 +52,30 @@ export default function ChatStage({
                 </span>
             </header>
 
-            {/* Empty state displayed when a room is not yet loaded with messages */}
-            <div className={styles.stageEmptyContent}>
-                <div
-                    className={styles.hearthSpot}
-                    data-hearth-fire=""
-                    data-hearth-size="540" // size parameter consumed by HearthProvider to draw the fireplace
-                    aria-hidden="true"
-                />
+            {/* If messages exist for this room, render the message stream; otherwise display the hearth empty state */}
+            {selectedRoom && messages.length > 0 ? (
+                <MessageList messages={messages} />
+            ) : (
+                <div className={styles.stageEmptyContent}>
+                    {/* The hearth fireplace canvas spot */}
+                    <div
+                        className={styles.hearthSpot}
+                        data-hearth-fire=""
+                        data-hearth-size="540" // size parameter consumed by HearthProvider to draw the fireplace
+                        aria-hidden="true"
+                    />
 
-                <h2 className={styles.emptyHeading}>
-                    {selectedRoom ? selectedRoom.name : 'The hearth is warm'}
-                </h2>
+                    <h2 className={styles.emptyHeading}>
+                        {selectedRoom ? selectedRoom.name : 'The hearth is warm'}
+                    </h2>
 
-                <p className={styles.emptySubtitle}>
-                    {selectedRoom
-                        ? 'This is the start of your conversation. Send a message below.'
-                        : 'Select a conversation from the left to begin chatting.'}
-                </p>
-            </div>
+                    <p className={styles.emptySubtitle}>
+                        {selectedRoom
+                            ? 'This is the start of your conversation. Send a message below.'
+                            : 'Select a conversation from the left to begin chatting.'}
+                    </p>
+                </div>
+            )}
 
             {/* Bottom message composer dock */}
             <div className={styles.chatInputDock}>
@@ -99,4 +111,3 @@ export default function ChatStage({
         </main>
     );
 }
-

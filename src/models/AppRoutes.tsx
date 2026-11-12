@@ -5,7 +5,7 @@ import AuthPage from "../pages/AuthPage";
 import Login from "../features/auth/Login";
 import Signup from "../features/auth/Signup";
 import DashboardPage from "../pages/DashboardPage";
-import { UserContextProvider } from "../features/auth/context/UserContext";
+import { UserContextProvider } from "../features/auth/context/UserContextProvider.tsx";
 
 //creates a dataRouter which is a routing list or map
 const routeList: DataRouter = createBrowserRouter([

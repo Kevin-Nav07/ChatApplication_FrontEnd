@@ -1,24 +1,8 @@
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { WebSocketContext, type ConnectionStatus, type MessageListener, type WebSocketContextType } from './WebSocketContext';
+import type { ChatMessage } from '../../../models/ChatMessage';
 
-// Defines the finite states that a WebSocket connection can be in for UI rendering
-export type ConnectionStatus = 'CONNECTING' | 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING';
 
-// Defines the data structure received from the Node.js ws backend when a message is broadcast
-export interface IncomingSocketMessage {
-    room_id: number; // the unique identifier of the room where the message was sent
-    message: string; // the string content of the message
-}
-
-// Defines the contract and methods exposed by this context to any consumer component
-export interface WebSocketContextType {
-    status: ConnectionStatus; // string representation of the current connection state
-    isConnected: boolean; // boolean flag for components that only care if the socket is open
-    lastMessage: IncomingSocketMessage | null; // the latest frame received over the socket stream
-    sendMessage: (roomId: number, content: string) => void; // method to transmit a message to a specific room
-}
-
-// Creates the Context object that acts as the token for React dependency injection
-export const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 // Props accepted by the provider component
 interface WebSocketProviderProps {
@@ -34,8 +18,9 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
     // Tracks the human-readable connection status
     const [status, setStatus] = useState<ConnectionStatus>('DISCONNECTED');
 
-    // Stores the most recent message received from the server
-    const [lastMessage, setLastMessage] = useState<IncomingSocketMessage | null>(null);
+    // Stores subscriber callback functions that want to receive real-time messages
+    // Using a ref with a Set ensures subscriptions do not cause the provider to re-render
+    const messageListenersRef = useRef<Set<MessageListener>>(new Set());
 
     // Holds the mutable WebSocket instance across renders without triggering component re-renders
     const socketRef = useRef<WebSocket | null>(null);
@@ -112,8 +97,21 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
             }
             try {
                 // Parses the JSON text frame received from the Node ws server
-                const parsed: IncomingSocketMessage = JSON.parse(event.data);
-                setLastMessage(parsed); // stores incoming message in state for consumer components
+                const parsed = JSON.parse(event.data);
+
+                // Checks if the incoming frame is a new chat message broadcast
+                if (parsed?.type === 'message:new' && parsed.message) {
+                    const incomingMessage: ChatMessage = parsed.message; // extracts confirmed message payload
+
+                    // Dispatches the message synchronously to every registered subscriber
+                    messageListenersRef.current.forEach((listener) => {
+                        try {
+                            listener(incomingMessage); // executes consumer callback
+                        } catch (listenerError) {
+                            console.error('[WebSocket] Error running message listener callback:', listenerError);
+                        }
+                    });
+                }
             } catch (err) {
                 console.error('[WebSocket] Failed to parse incoming JSON frame:', err);
             }
@@ -152,14 +150,25 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
             return;
         }
 
-        // Formats payload to match the backend's expected contract: { room_id, message }
+        // Formats payload to match the backend contract with both content and message keys
         const payload = JSON.stringify({
             room_id: roomId, // target conversation room
-            message: content, // text content to broadcast
+            content: content, // standard content attribute
+            message: content, // backwards-compatible fallback attribute
         });
 
         socketRef.current.send(payload); // writes the payload string into the WebSocket stream
     };
+
+    // Registers a listener callback and returns an unsubscription function for effect cleanup
+    const subscribeToMessages = useCallback((listener: MessageListener) => {
+        messageListenersRef.current.add(listener); // adds subscriber to the active set
+
+        // Unsubscribe function to be called during effect cleanup in the consumer component
+        return () => {
+            messageListenersRef.current.delete(listener); // removes subscriber from the active set
+        };
+    }, []); // empty dependencies array guarantees stable function reference across renders
 
     // Lifecycle hook that runs on initial mount to start connection and cleans up on unmount
     useEffect(() => {
@@ -202,8 +211,8 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
     const contextValue: WebSocketContextType = {
         status, // the current connection state
         isConnected: status === 'CONNECTED', // convenience boolean
-        lastMessage, // the latest received message
         sendMessage, // method to transmit a message
+        subscribeToMessages, // method to subscribe to incoming messages
     };
 
     return (
@@ -213,13 +222,5 @@ export function WebSocketProvider({ children }: WebSocketProviderProps): React.J
     );
 }
 
-// Custom hook that child components call to consume the WebSocket API
-// Throws an error immediately if called outside a WebSocketProvider to catch setup mistakes early
-export function useWebSocket(): WebSocketContextType {
-    const context = useContext(WebSocketContext); // accesses the context value from the nearest provider
-    if (!context) {
-        throw new Error('useWebSocket must be used within a WebSocketProvider'); // fails loudly if provider is missing
-    }
-    return context; // returns the API object
-}
+
 

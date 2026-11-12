@@ -7,6 +7,7 @@ import CreateGroupModal from './CreateGroupModal';
 export interface ConversationListProps {
     rooms: Room[]; // list of rooms retrieved from the backend
     selectedRoom: Room | null; // the room currently selected and open in the chat stage
+    unreadRoomIds?: Set<number>; // set of room IDs that currently have unread incoming messages
     onSelectRoom: (room: Room) => void; // callback function triggered when a user clicks on a room
     onRoomCreated: (newRoom: Room) => void; // callback triggered when a new room is created via modal
 }
@@ -15,6 +16,7 @@ export interface ConversationListProps {
 export default function ConversationList({
     rooms,
     selectedRoom,
+    unreadRoomIds,
     onSelectRoom,
     onRoomCreated,
 }: ConversationListProps): React.JSX.Element {
@@ -81,42 +83,45 @@ export default function ConversationList({
 
             {/* Conversation list body */}
             <div className={styles.listBody}>
-                {/* 
-                  TODO(you): Write the dynamic room list rendering here.
-                  1. Filter `rooms` using `searchTerm` if text is typed in search.
-                  2. Map over the filtered rooms array to produce a row for each room.
-                  3. If `selectedRoom?.id === room.id`, apply `styles.chatItemActive`.
-                  4. Attach `onClick={() => onSelectRoom(room)}` to select the room.
-                */}
-                {rooms.map((room) => {
-                    const isSelected = selectedRoom?.id === room.id; // checks if this item is currently active
+                {rooms
+                    .filter((room) => {
+                        const matchesSearch = room.name.toLowerCase().includes(searchTerm.toLowerCase());
+                        const matchesFilter = filter === 'all' || (unreadRoomIds?.has(room.id) ?? false);
+                        return matchesSearch && matchesFilter;
+                    })
+                    .map((room) => {
+                        const isSelected = selectedRoom?.id === room.id; // checks if this item is currently active
 
-                    return (
-                        <div
-                            key={room.id}
-                            className={`${styles.chatItem} ${isSelected ? styles.chatItemActive : ''}`}
-                            onClick={() => onSelectRoom(room)} // triggers selection callback
-                        >
-                            {/* Avatar placeholder with first letter of room name */}
-                            <div className={styles.chatAvatar}>
-                                <span>{room.name.charAt(0).toUpperCase()}</span>
-                            </div>
+                        return (
+                            <div
+                                key={room.id}
+                                className={`${styles.chatItem} ${isSelected ? styles.chatItemActive : ''}`}
+                                onClick={() => onSelectRoom(room)} // triggers selection callback
+                            >
+                                {/* Avatar placeholder with first letter of room name */}
+                                <div className={styles.chatAvatar}>
+                                    <span>{room.name.charAt(0).toUpperCase()}</span>
+                                </div>
 
-                            {/* Contact title and message preview */}
-                            <div className={styles.chatDetails}>
-                                <div className={styles.chatTopRow}>
-                                    <span className={styles.chatName}>{room.name}</span>
-                                    <span className={styles.chatTime}>
-                                        {new Date(room.created_at).toLocaleDateString()}
-                                    </span>
-                                </div>
-                                <div className={styles.chatBottomRow}>
-                                    <p className={styles.chatSnippet}>{room.room_type}</p>
+                                {/* Contact title and message preview */}
+                                <div className={styles.chatDetails}>
+                                    <div className={styles.chatTopRow}>
+                                        <span className={styles.chatName}>{room.name}</span>
+                                        <span className={styles.chatTime}>
+                                            {new Date(room.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    <div className={styles.chatBottomRow}>
+                                        <p className={styles.chatSnippet}>{room.room_type}</p>
+                                        {/* Glowing ember spark badge if room has unread messages */}
+                                        {unreadRoomIds?.has(room.id) && (
+                                            <span className={styles.unreadBadge} aria-label="Unread message" />
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    );
-                })}
+                        );
+                    })}
 
                 {/* Empty fallback if no rooms exist */}
                 {rooms.length === 0 && (

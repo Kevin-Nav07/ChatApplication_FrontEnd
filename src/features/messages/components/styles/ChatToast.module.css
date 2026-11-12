@@ -1,0 +1,121 @@
+/* Floating toast notification container positioned in the top-right corner */
+.toastContainer {
+    position: fixed;
+    top: 24px;
+    right: 28px;
+    z-index: 1000;
+    width: 360px;
+    max-width: calc(100vw - 40px);
+    background-color: rgba(28, 22, 17, 0.95);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(229, 117, 61, 0.4);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 16px rgba(229, 117, 61, 0.15);
+    border-radius: 12px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    cursor: pointer;
+    user-select: none;
+    animation: toastSlideIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+/* Hover effect to indicate clickable target */
+.toastContainer:hover {
+    transform: translateY(-2px);
+    border-color: rgba(229, 117, 61, 0.7);
+}
+
+/* Subtle glow spark dot on the left of the toast */
+.sparkDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+    background-color: var(--accent, #e5753d);
+    box-shadow: 0 0 8px rgba(229, 117, 61, 0.8);
+}
+
+/* Content block containing header and snippet */
+.contentBlock {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Top metadata row with sender name and room badge */
+.topRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* Sender username styling in warm ember tone */
+.senderName {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ember-hot, #ff9345);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Room name pill tag */
+.roomBadge {
+    font-size: 11px;
+    color: var(--muted, #8e8276);
+    background-color: rgba(255, 255, 255, 0.06);
+    padding: 2px 8px;
+    border-radius: 9999px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+}
+
+/* Message body snippet */
+.snippetText {
+    font-size: 12px;
+    color: var(--text, #f4eee7);
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    line-height: 1.4;
+}
+
+/* Dismiss close button */
+.closeButton {
+    background: transparent;
+    border: none;
+    color: var(--muted, #8e8276);
+    cursor: pointer;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: color 0.15s ease;
+    flex-shrink: 0;
+}
+
+.closeButton:hover {
+    color: var(--text, #f4eee7);
+}
+
+/* Slide in animation */
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
