@@ -63,16 +63,12 @@ export default function HomePage(): React.JSX.Element {
                             </div>
                         ))}
                     </div>
-                    {/* The fire burns in the centre of this box, drawn by the hearth canvas behind the page */}
-                    <div className={styles.fireSpot} data-hearth-fire="" data-hearth-size="620" />
+                    {/* The fire burns in the centre of this box, drawn by the hearth canvas behind the page.
+                        data-hearth-scale makes the fire 2.385 times the box's width (620px on a 260px box, the designed size),
+                        so when the box grows on a big monitor the fire grows with it */}
+                    <div className={styles.fireSpot} data-hearth-fire="" data-hearth-scale="2.385" />
                 </div>
             </main>
-
-            <footer className={styles.footer}>
-                <span>Direct messages</span>
-                <span>Group rooms</span>
-                <span>Friends around the fire</span>
-            </footer>
         </div>
     );
 }

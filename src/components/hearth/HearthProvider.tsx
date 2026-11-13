@@ -63,7 +63,8 @@ function findFire(): FirePlace | null {
     return {
         x: rect.left + rect.width / 2,
         y: rect.top + rect.height / 2,
-        size: Number(element.dataset.hearthSize) || rect.width, // data-hearth-size lets a small element ask for a bigger fire
+        // data-hearth-size asks for a fixed size; data-hearth-scale asks for a multiple of the element's width, so the fire follows a box that resizes
+        size: Number(element.dataset.hearthSize) || rect.width * (Number(element.dataset.hearthScale) || 1),
         kindling: element.dataset.hearthIntensity === 'kindling',
         shape: element.dataset.hearthShape === 'bed' ? 'bed' : 'round', // data-hearth-shape="bed" asks for the long low fire
         left: rect.left,
